@@ -15,8 +15,24 @@ const roles = [
 
 const SIDEBAR_WIDTH_PX = 256;
 
-export default function UserSlideOver({ open, mode = 'create', initialUser, onClose, onSubmit, submitting }) {
-  const [form, setForm] = useState({ nom: '', email: '', role: 'etudiant', password: '' });
+export default function UserSlideOver({ open, mode = 'create', initialUser, defaultRole, onClose, onSubmit, submitting }) {
+  // Déterminer le rôle à utiliser (defaultRole prioritaire, sinon initialUser.role, sinon 'etudiant')
+  const currentRole = defaultRole || initialUser?.role || 'etudiant';
+  const isRoleLocked = !!defaultRole; // Le rôle est verrouillé si defaultRole est défini
+
+  const [form, setForm] = useState({ 
+    nom: '', 
+    email: '', 
+    role: currentRole, 
+    password: '',
+    // Champs spécifiques pour prof
+    matricule: '',
+    specialite: '',
+    grade: '',
+    // Champs spécifiques pour etudiant
+    filiere: '',
+    niveau: '',
+  });
   const [avatar, setAvatar] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState('');
   const fileRef = useRef(null);
@@ -24,17 +40,41 @@ export default function UserSlideOver({ open, mode = 'create', initialUser, onCl
   useEffect(() => {
     if (!open) return;
     if (mode === 'edit' && initialUser) {
-      setForm({ nom: initialUser.nom || '', email: initialUser.email || '', role: initialUser.role || 'etudiant', password: '' });
+      // Remplir le formulaire avec les données de l'utilisateur
+      setForm({ 
+        nom: initialUser.nom || '', 
+        email: initialUser.email || '', 
+        role: initialUser.role || currentRole, 
+        password: '',
+        // Champs prof
+        matricule: initialUser.prof?.matricule || initialUser.etudiant?.matricule || '',
+        specialite: initialUser.prof?.specialite || '',
+        grade: initialUser.prof?.grade || '',
+        // Champs etudiant
+        filiere: initialUser.etudiant?.filiere || '',
+        niveau: initialUser.etudiant?.niveau || '',
+      });
       setAvatar(null);
       // Construire l'URL de l'avatar avec baseURL/storage/{nom-de-image}
       const avatarPath = initialUser.avatar || initialUser.avatar_url || '';
       setAvatarPreview(avatarPath ? getAvatarUrl(avatarPath) : '');
     } else {
-      setForm({ nom: '', email: '', role: 'etudiant', password: '' });
+      // Formulaire vide pour création
+      setForm({ 
+        nom: '', 
+        email: '', 
+        role: currentRole, 
+        password: '',
+        matricule: '',
+        specialite: '',
+        grade: '',
+        filiere: '',
+        niveau: '',
+      });
       setAvatar(null);
       setAvatarPreview('');
     }
-  }, [open, mode, initialUser]);
+  }, [open, mode, initialUser, currentRole]);
 
   useEffect(() => {
     const onKey = (e) => { if (e.key === 'Escape') onClose?.(); };
@@ -83,7 +123,11 @@ export default function UserSlideOver({ open, mode = 'create', initialUser, onCl
       >
         {/* Header */}
         <div className="px-4 py-3 flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-slate-900">{mode === 'edit' ? 'Modifier utilisateur' : 'Nouvel utilisateur'}</h3>
+          <h3 className="text-lg font-semibold text-slate-900">
+            {mode === 'edit' 
+              ? `Modifier ${currentRole === 'prof' ? 'professeur' : currentRole === 'etudiant' ? 'étudiant' : 'utilisateur'}` 
+              : `Nouveau ${currentRole === 'prof' ? 'professeur' : currentRole === 'etudiant' ? 'étudiant' : 'utilisateur'}`}
+          </h3>
           <Button variant="ghost" size="icon" onClick={onClose} aria-label="Fermer">
             <X className="h-5 w-5" />
           </Button>
@@ -107,7 +151,7 @@ export default function UserSlideOver({ open, mode = 'create', initialUser, onCl
                     <span className="text-slate-400 text-xs">Avatar</span>
                   )}
                 </button>
-                {/* Icône d’édition */}
+                {/* Icône d'édition */}
                 <div className="absolute -bottom-1 -right-1 h-8 w-8 rounded-full bg-white border shadow flex items-center justify-center">
                   <Pencil className="h-4 w-4 text-slate-600" />
                 </div>
@@ -121,34 +165,130 @@ export default function UserSlideOver({ open, mode = 'create', initialUser, onCl
           {/* Identité */}
           <section className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="nom">Nom</Label>
+              <Label htmlFor="nom">Nom *</Label>
               <Input id="nom" name="nom" value={form.nom} onChange={handleChange} required />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">Email *</Label>
               <Input id="email" type="email" name="email" value={form.email} onChange={handleChange} required />
             </div>
           </section>
 
           <Separator />
 
-          {/* Rôle */}
-          <section className="space-y-2">
-            <Label>Rôle</Label>
-            <Select
-              value={form.role}
-              onChange={(val) => setForm((f) => ({ ...f, role: val }))}
-              options={roles}
-              placeholder="Sélectionner un rôle"
-            />
-          </section>
+          {/* Rôle - Masqué si defaultRole est défini */}
+          {!isRoleLocked && (
+            <>
+              <section className="space-y-2">
+                <Label>Rôle *</Label>
+                <Select
+                  value={form.role}
+                  onChange={(val) => setForm((f) => ({ ...f, role: val }))}
+                  options={roles}
+                  placeholder="Sélectionner un rôle"
+                />
+              </section>
+              <Separator />
+            </>
+          )}
 
-          <Separator />
+          {/* Champs spécifiques selon le rôle */}
+          {form.role === 'prof' && (
+            <>
+              <section className="space-y-4">
+                <h3 className="text-sm font-semibold text-slate-700">Informations professionnelles</h3>
+                <div className="grid grid-cols-1 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="matricule">Matricule *</Label>
+                    <Input 
+                      id="matricule" 
+                      name="matricule" 
+                      value={form.matricule} 
+                      onChange={handleChange} 
+                      placeholder="Ex: PROF2024001"
+                      required 
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="specialite">Spécialité *</Label>
+                      <Input 
+                        id="specialite" 
+                        name="specialite" 
+                        value={form.specialite} 
+                        onChange={handleChange} 
+                        placeholder="Ex: Mathématiques"
+                        required 
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="grade">Grade *</Label>
+                      <Input 
+                        id="grade" 
+                        name="grade" 
+                        value={form.grade} 
+                        onChange={handleChange} 
+                        placeholder="Ex: Maître de Conférences"
+                        required 
+                      />
+                    </div>
+                  </div>
+                </div>
+              </section>
+              <Separator />
+            </>
+          )}
+
+          {form.role === 'etudiant' && (
+            <>
+              <section className="space-y-4">
+                <h3 className="text-sm font-semibold text-slate-700">Informations académiques</h3>
+                <div className="grid grid-cols-1 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="matricule">Matricule *</Label>
+                    <Input 
+                      id="matricule" 
+                      name="matricule" 
+                      value={form.matricule} 
+                      onChange={handleChange} 
+                      placeholder="Ex: ETU2024001"
+                      required 
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="filiere">Filière *</Label>
+                      <Input 
+                        id="filiere" 
+                        name="filiere" 
+                        value={form.filiere} 
+                        onChange={handleChange} 
+                        placeholder="Ex: Informatique"
+                        required 
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="niveau">Niveau *</Label>
+                      <Input 
+                        id="niveau" 
+                        name="niveau" 
+                        value={form.niveau} 
+                        onChange={handleChange} 
+                        placeholder="Ex: L3"
+                        required 
+                      />
+                    </div>
+                  </div>
+                </div>
+              </section>
+              <Separator />
+            </>
+          )}
 
           {/* Sécurité */}
           {mode === 'create' ? (
             <section className="space-y-2">
-              <Label htmlFor="password">Mot de passe</Label>
+              <Label htmlFor="password">Mot de passe *</Label>
               <Input id="password" type="password" name="password" value={form.password} onChange={handleChange} required />
             </section>
           ) : (
@@ -162,7 +302,9 @@ export default function UserSlideOver({ open, mode = 'create', initialUser, onCl
         <Separator />
         <div className="p-3 px-4 bg-white flex justify-end gap-2">
           <Button type="button" variant="outline" onClick={onClose}>Annuler</Button>
-          <Button type="button" onClick={handleSubmit} disabled={submitting}>{submitting ? 'En cours...' : (mode === 'edit' ? 'Enregistrer' : 'Créer')}</Button>
+          <Button type="button" onClick={handleSubmit} disabled={submitting}>
+            {submitting ? 'En cours...' : (mode === 'edit' ? 'Enregistrer' : 'Créer')}
+          </Button>
         </div>
       </div>
     </div>

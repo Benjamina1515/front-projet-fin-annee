@@ -17,6 +17,7 @@ import UsersManagement from './pages/admin/UsersManagement';
 
 // Pages Professeur
 import ProfessorDashboard from './pages/professor/ProfessorDashboard';
+import CreateProf from './pages/professor/CreateProf';
 
 // Pages Étudiant
 import StudentDashboard from './pages/student/StudentDashboard';
@@ -40,6 +41,8 @@ function App() {
           >
             <Route index element={<AdminDashboard />} />
             <Route path="users" element={<UsersManagement />} />
+            <Route path="users/profs" element={<UsersManagement roleFilter="prof" />} />
+            <Route path="users/etudiants" element={<UsersManagement roleFilter="etudiant" />} />
             <Route path="projects" element={<div>Gestion des Projets (À implémenter)</div>} />
             <Route path="settings" element={<div>Paramètres (À implémenter)</div>} />
           </Route>
@@ -54,6 +57,7 @@ function App() {
             }
           >
             <Route index element={<ProfessorDashboard />} />
+            <Route path="create-prof" element={<CreateProf />} />
             <Route path="projects" element={<div>Mes Projets (À implémenter)</div>} />
             <Route path="evaluations" element={<div>Évaluations (À implémenter)</div>} />
             <Route path="students" element={<div>Mes Étudiants (À implémenter)</div>} />

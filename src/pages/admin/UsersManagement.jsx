@@ -30,31 +30,9 @@ import { MoreVertical, Search, Plus, Edit, Trash2 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import UserSlideOver from '../../components/admin/UserSlideOver';
 import { getAvatarUrl } from '../../utils/avatar';
+import { Skeleton } from '../../components/ui/skeleton';
 
-const roleBadge = (role) => {
-  const styles = {
-    admin: 'bg-red-100 text-red-700',
-    prof: 'bg-blue-100 text-blue-700',
-    etudiant: 'bg-green-100 text-green-700',
-  };
-  return (
-    <span className={`px-2 py-1 rounded-full text-xs font-medium ${styles[role] || 'bg-gray-100 text-gray-700'}`}>
-      {role}
-    </span>
-  );
-};
-
-const formatDate = (dateString) => {
-  if (!dateString) return 'N/A';
-  const date = new Date(dateString);
-  return date.toLocaleDateString('fr-FR', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
-};
-
-const UsersManagement = () => {
+const UsersManagement = ({ roleFilter }) => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState('');
@@ -99,15 +77,52 @@ const UsersManagement = () => {
     try {
       setSubmitting(true);
       if (panelMode === 'create') {
-        await userService.createUser(data);
+        // Pour la création, inclure tous les champs selon le rôle
+        const payload = { 
+          nom: data.nom, 
+          email: data.email, 
+          role: data.role, 
+          password: data.password 
+        };
+        
+        // Ajouter les champs spécifiques selon le rôle
+        if (data.role === 'prof') {
+          payload.matricule = data.matricule;
+          payload.specialite = data.specialite;
+          payload.grade = data.grade;
+        } else if (data.role === 'etudiant') {
+          payload.matricule = data.matricule;
+          payload.filiere = data.filiere;
+          payload.niveau = data.niveau;
+        }
+        
+        // Ajouter l'avatar si présent
+        if (data.avatar && data.avatar instanceof File) {
+          payload.avatar = data.avatar;
+        }
+        
+        await userService.createUser(payload);
         toast.success('Utilisateur créé');
       } else if (panelMode === 'edit' && currentUser) {
         const payload = { nom: data.nom, email: data.email, role: data.role };
         if (data.password) payload.password = data.password;
+        
+        // Ajouter les champs spécifiques selon le rôle pour la modification
+        if (data.role === 'prof') {
+          payload.matricule = data.matricule;
+          payload.specialite = data.specialite;
+          payload.grade = data.grade;
+        } else if (data.role === 'etudiant') {
+          payload.matricule = data.matricule;
+          payload.filiere = data.filiere;
+          payload.niveau = data.niveau;
+        }
+        
         // Ajouter l'avatar seulement si c'est un nouveau fichier (File object)
         if (data.avatar && data.avatar instanceof File) {
           payload.avatar = data.avatar;
         }
+        
         await userService.updateUser(currentUser.id, payload);
         toast.success('Utilisateur mis à jour');
       }
@@ -145,14 +160,25 @@ const UsersManagement = () => {
   };
 
   const filtered = useMemo(() => {
+    let filteredUsers = users;
+    
+    // Appliquer le filtre de rôle si spécifié
+    if (roleFilter) {
+      filteredUsers = filteredUsers.filter(u => u.role === roleFilter);
+    }
+    
+    // Appliquer la recherche
     const q = query.trim().toLowerCase();
-    if (!q) return users;
-    return users.filter(u =>
-      (u.nom || '').toLowerCase().includes(q) ||
-      (u.email || '').toLowerCase().includes(q) ||
-      (u.role || '').toLowerCase().includes(q)
-    );
-  }, [users, query]);
+    if (q) {
+      filteredUsers = filteredUsers.filter(u =>
+        (u.nom || '').toLowerCase().includes(q) ||
+        (u.email || '').toLowerCase().includes(q) ||
+        (u.role || '').toLowerCase().includes(q)
+      );
+    }
+    
+    return filteredUsers;
+  }, [users, query, roleFilter]);
 
   // Pagination logic
   const totalPages = Math.ceil(filtered.length / itemsPerPage);
@@ -161,24 +187,24 @@ const UsersManagement = () => {
   const paginatedUsers = filtered.slice(startIndex, endIndex);
 
   useEffect(() => {
-    // Reset to page 1 when search query changes
+    // Reset to page 1 when search query or role filter changes
     setCurrentPage(1);
-  }, [query]);
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
+  }, [query, roleFilter]);
 
   return (
     <div className="space-y-6 relative">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">User management</h1>
-          <p className="text-sm text-gray-500">Manage users and their permissions.</p>
+          <h1 className="text-2xl font-semibold text-gray-900">
+            {roleFilter === 'prof' ? 'Gestion des Professeurs' : 
+             roleFilter === 'etudiant' ? 'Gestion des Étudiants' : 
+             'User management'}
+          </h1>
+          <p className="text-sm text-gray-500">
+            {roleFilter === 'prof' ? 'Gérer les professeurs et leurs informations.' :
+             roleFilter === 'etudiant' ? 'Gérer les étudiants et leurs informations.' :
+             'Manage users and their permissions.'}
+          </p>
         </div>
         <Button className="gap-2" onClick={handleCreate}>
           <Plus className="h-4 w-4" /> Add user
@@ -203,68 +229,147 @@ const UsersManagement = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>User name</TableHead>
-                <TableHead>Access</TableHead>
-                <TableHead>Created at</TableHead>
+                {roleFilter === 'prof' ? (
+                  <>
+                    <TableHead>Matricule</TableHead>
+                    <TableHead>Spécialité</TableHead>
+                    <TableHead>Grade</TableHead>
+                  </>
+                ) : roleFilter === 'etudiant' ? (
+                  <>
+                    <TableHead>Matricule</TableHead>
+                    <TableHead>Filière</TableHead>
+                    <TableHead>Niveau</TableHead>
+                  </>
+                ) : (
+                  <>
+                    <TableHead>Matricule</TableHead>
+                    <TableHead>Informations</TableHead>
+                  </>
+                )}
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {paginatedUsers.map((u) => (
-                <TableRow key={u.id} className="hover:bg-gray-50">
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      {u.avatar ? (
-                        <img 
-                          src={getAvatarUrl(u.avatar)} 
-                          alt={u.nom} 
-                          className="h-8 w-8 rounded-full object-cover"
-                          onError={(e) => {
-                            e.target.style.display = 'none';
-                            e.target.nextSibling.style.display = 'flex';
-                          }}
-                        />
-                      ) : null}
-                      <div className={`h-8 w-8 rounded-full bg-gray-200 ${u.avatar ? 'hidden' : 'flex items-center justify-center'}`}>
-                        {!u.avatar && <span className="text-xs text-gray-400">{u.nom?.charAt(0)?.toUpperCase() || 'U'}</span>}
+              {loading ? (
+                // Skeleton loader
+                Array.from({ length: itemsPerPage }).map((_, index) => (
+                  <TableRow key={`skeleton-${index}`}>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <Skeleton className="h-8 w-8 rounded-full" />
+                        <div className="space-y-2">
+                          <Skeleton className="h-4 w-32" />
+                          <Skeleton className="h-3 w-48" />
+                        </div>
                       </div>
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">{u.nom}</div>
-                        <div className="text-xs text-gray-500">{u.email}</div>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>{roleBadge(u.role)}</TableCell>
-                  <TableCell>{formatDate(u.created_at)}</TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger>
-                        <Button variant="ghost" size="icon" title="More">
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent>
-                        <DropdownMenuItem onClick={() => handleEdit(u)}>
-                          <Edit className="h-4 w-4 mr-2" />
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          onClick={() => handleDeleteClick(u)}
-                          className="text-red-600 focus:text-red-600"
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {paginatedUsers.length === 0 && (
+                    </TableCell>
+                    {roleFilter === 'prof' ? (
+                      <>
+                        <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-28" /></TableCell>
+                      </>
+                    ) : roleFilter === 'etudiant' ? (
+                      <>
+                        <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                      </>
+                    ) : (
+                      <>
+                        <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                      </>
+                    )}
+                    <TableCell className="text-right">
+                      <Skeleton className="h-8 w-8 ml-auto rounded-md" />
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : paginatedUsers.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center text-sm text-gray-500 py-8">
+                  <TableCell colSpan={roleFilter ? 5 : 4} className="text-center text-sm text-gray-500 py-8">
                     Aucun utilisateur
                   </TableCell>
                 </TableRow>
+              ) : (
+                paginatedUsers.map((u) => (
+                  <TableRow key={u.id} className="hover:bg-gray-50">
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        {u.avatar ? (
+                          <img 
+                            src={getAvatarUrl(u.avatar)} 
+                            alt={u.nom} 
+                            className="h-8 w-8 rounded-full object-cover"
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                              e.target.nextSibling.style.display = 'flex';
+                            }}
+                          />
+                        ) : null}
+                        <div className={`h-8 w-8 rounded-full bg-gray-200 ${u.avatar ? 'hidden' : 'flex items-center justify-center'}`}>
+                          {!u.avatar && <span className="text-xs text-gray-400">{u.nom?.charAt(0)?.toUpperCase() || 'U'}</span>}
+                        </div>
+                        <div>
+                          <div className="text-sm font-medium text-gray-900">{u.nom}</div>
+                          <div className="text-xs text-gray-500">{u.email}</div>
+                        </div>
+                      </div>
+                    </TableCell>
+                    {roleFilter === 'prof' ? (
+                      <>
+                        <TableCell className="text-sm">{u.prof?.matricule || '-'}</TableCell>
+                        <TableCell className="text-sm">{u.prof?.specialite || '-'}</TableCell>
+                        <TableCell className="text-sm">{u.prof?.grade || '-'}</TableCell>
+                      </>
+                    ) : roleFilter === 'etudiant' ? (
+                      <>
+                        <TableCell className="text-sm">{u.etudiant?.matricule || '-'}</TableCell>
+                        <TableCell className="text-sm">{u.etudiant?.filiere || '-'}</TableCell>
+                        <TableCell className="text-sm">{u.etudiant?.niveau || '-'}</TableCell>
+                      </>
+                    ) : (
+                      <>
+                        <TableCell className="text-sm">
+                          {u.prof?.matricule || u.etudiant?.matricule || '-'}
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          {u.role === 'prof' ? (
+                            <span>{u.prof?.specialite || '-'} / {u.prof?.grade || '-'}</span>
+                          ) : u.role === 'etudiant' ? (
+                            <span>{u.etudiant?.filiere || '-'} / {u.etudiant?.niveau || '-'}</span>
+                          ) : (
+                            '-'
+                          )}
+                        </TableCell>
+                      </>
+                    )}
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger>
+                          <Button variant="ghost" size="icon" title="More">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                          <DropdownMenuItem onClick={() => handleEdit(u)}>
+                            <Edit className="h-4 w-4 mr-2" />
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => handleDeleteClick(u)}
+                            className="text-red-600 focus:text-red-600"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))
               )}
             </TableBody>
           </Table>
@@ -308,6 +413,7 @@ const UsersManagement = () => {
         open={panelOpen}
         mode={panelMode}
         initialUser={currentUser}
+        defaultRole={roleFilter}
         onClose={() => setPanelOpen(false)}
         onSubmit={handleSubmit}
         submitting={submitting}
@@ -336,6 +442,7 @@ const UsersManagement = () => {
             <Button
               variant="destructive"
               onClick={handleDeleteConfirm}
+              className="bg-red-500 hover:bg-red-600 text-white"
             >
               Supprimer
             </Button>

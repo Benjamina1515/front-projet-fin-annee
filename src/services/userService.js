@@ -22,6 +22,18 @@ export const userService = {
     formData.append('email', userData.email);
     formData.append('role', userData.role);
     formData.append('password', userData.password);
+    
+    // Ajouter les champs spécifiques selon le rôle
+    if (userData.role === 'prof') {
+      if (userData.matricule) formData.append('matricule', userData.matricule);
+      if (userData.specialite) formData.append('specialite', userData.specialite);
+      if (userData.grade) formData.append('grade', userData.grade);
+    } else if (userData.role === 'etudiant') {
+      if (userData.matricule) formData.append('matricule', userData.matricule);
+      if (userData.filiere) formData.append('filiere', userData.filiere);
+      if (userData.niveau) formData.append('niveau', userData.niveau);
+    }
+    
     // Ajouter l'avatar seulement si c'est un fichier File
     if (userData.avatar && userData.avatar instanceof File) {
       formData.append('avatar', userData.avatar);
@@ -43,6 +55,18 @@ export const userService = {
     if (userData.email) formData.append('email', userData.email);
     if (userData.role) formData.append('role', userData.role);
     if (userData.password) formData.append('password', userData.password);
+    
+    // Ajouter les champs spécifiques selon le rôle
+    if (userData.role === 'prof') {
+      if (userData.matricule) formData.append('matricule', userData.matricule);
+      if (userData.specialite) formData.append('specialite', userData.specialite);
+      if (userData.grade) formData.append('grade', userData.grade);
+    } else if (userData.role === 'etudiant') {
+      if (userData.matricule) formData.append('matricule', userData.matricule);
+      if (userData.filiere) formData.append('filiere', userData.filiere);
+      if (userData.niveau) formData.append('niveau', userData.niveau);
+    }
+    
     // Ajouter l'avatar seulement si c'est un fichier File (nouveau fichier sélectionné)
     if (userData.avatar && userData.avatar instanceof File) {
       formData.append('avatar', userData.avatar);
