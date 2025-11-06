@@ -14,21 +14,26 @@ import {
   DialogHeader,
   DialogTitle,
 } from '../../components/ui/dialog';
-import { Plus, Users, BookOpen, X, Loader2, RefreshCw } from 'lucide-react';
+import { Plus, Users, BookOpen, X, Loader2, RefreshCw, Edit, Trash2 } from 'lucide-react';
 import ProjectSlideOver from '../../components/professor/ProjectSlideOver';
+import SujetsSlideOver from '../../components/professor/SujetsSlideOver';
+import ProjectDetailsSlideOver from '../../components/professor/ProjectDetailsSlideOver';
 
 const MesProjets = () => {
   const [projets, setProjets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [openCreateSlideOver, setOpenCreateSlideOver] = useState(false);
-  const [openSujetsModal, setOpenSujetsModal] = useState(false);
-  const [openDetailsModal, setOpenDetailsModal] = useState(false);
+  const [openEditSlideOver, setOpenEditSlideOver] = useState(false);
+  const [openSujetsSlideOver, setOpenSujetsSlideOver] = useState(false);
+  const [openEditSujetModal, setOpenEditSujetModal] = useState(false);
+  const [openDetailsSlideOver, setOpenDetailsSlideOver] = useState(false);
   const [selectedProjet, setSelectedProjet] = useState(null);
+  const [editingProjet, setEditingProjet] = useState(null);
+  const [editingSujet, setEditingSujet] = useState(null);
   const [repartirLoading, setRepartirLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-
-  // Formulaire sujets
-  const [sujets, setSujets] = useState([{ titre_sujet: '', description: '' }]);
+  const [submittingSujet, setSubmittingSujet] = useState(false);
+  const [deletingProjectId, setDeletingProjectId] = useState(null);
 
   useEffect(() => {
     loadProjets();
@@ -44,6 +49,51 @@ const MesProjets = () => {
       toast.error('Erreur lors du chargement des projets');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleUpdateProject = async (formData) => {
+    if (!editingProjet) return;
+    
+    // Validation côté client
+    if (formData.niveaux.length === 0) {
+      toast.error('Veuillez sélectionner un niveau');
+      return;
+    }
+    
+    if (!formData.date_debut || !formData.date_fin) {
+      toast.error('Veuillez sélectionner les dates de début et de fin');
+      return;
+    }
+    
+    if (new Date(formData.date_fin) < new Date(formData.date_debut)) {
+      toast.error('La date de fin doit être postérieure à la date de début');
+      return;
+    }
+    
+    try {
+      setSubmitting(true);
+      await projectService.updateProject(editingProjet.id, formData);
+      toast.success('Projet mis à jour avec succès !');
+      setOpenEditSlideOver(false);
+      setEditingProjet(null);
+      await loadProjets();
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour du projet:', error);
+      toast.error(error.response?.data?.message || 'Erreur lors de la mise à jour du projet');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleEditProject = async (projetId) => {
+    try {
+      const projet = await projectService.getProjectById(projetId);
+      setEditingProjet(projet);
+      setOpenEditSlideOver(true);
+    } catch (error) {
+      console.error('Erreur lors du chargement du projet:', error);
+      toast.error('Erreur lors du chargement du projet');
     }
   };
 
@@ -70,9 +120,9 @@ const MesProjets = () => {
       toast.success('Projet créé avec succès !');
       setOpenCreateSlideOver(false);
       await loadProjets();
-      // Ouvrir le modal pour ajouter des sujets
+      // Ouvrir le SlideOver pour ajouter des sujets
       setSelectedProjet(projet);
-      setOpenSujetsModal(true);
+      setOpenSujetsSlideOver(true);
     } catch (error) {
       console.error('Erreur lors de la création du projet:', error);
       toast.error(error.response?.data?.message || 'Erreur lors de la création du projet');
@@ -81,33 +131,11 @@ const MesProjets = () => {
     }
   };
 
-  const handleAddSujet = () => {
-    setSujets([...sujets, { titre_sujet: '', description: '' }]);
-  };
-
-  const handleRemoveSujet = (index) => {
-    if (sujets.length > 1) {
-      setSujets(sujets.filter((_, i) => i !== index));
-    }
-  };
-
-  const handleSujetChange = (index, field, value) => {
-    const newSujets = [...sujets];
-    newSujets[index][field] = value;
-    setSujets(newSujets);
-  };
-
-  const handleSaveSujets = async () => {
+  const handleSaveSujets = async (validSujets) => {
     if (!selectedProjet) return;
 
     try {
-      // Valider qu'au moins un sujet a un titre
-      const validSujets = sujets.filter(s => s.titre_sujet.trim() !== '');
-      if (validSujets.length === 0) {
-        toast.error('Veuillez ajouter au moins un sujet avec un titre');
-        return;
-      }
-
+      setSubmitting(true);
       // Ajouter tous les sujets
       for (const sujet of validSujets) {
         await projectService.addSujet({
@@ -118,13 +146,14 @@ const MesProjets = () => {
       }
 
       toast.success(`${validSujets.length} sujet(s) ajouté(s) avec succès !`);
-      setOpenSujetsModal(false);
-      setSujets([{ titre_sujet: '', description: '' }]);
+      setOpenSujetsSlideOver(false);
       setSelectedProjet(null);
       await loadProjets();
     } catch (error) {
       console.error('Erreur lors de l\'ajout des sujets:', error);
       toast.error(error.response?.data?.message || 'Erreur lors de l\'ajout des sujets');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -134,9 +163,9 @@ const MesProjets = () => {
       const projet = await projectService.repartirEtudiants(projetId);
       toast.success('Répartition effectuée avec succès !');
       await loadProjets();
-      // Ouvrir le modal de détails pour voir la répartition
+      // Ouvrir le slideOver de détails pour voir la répartition
       setSelectedProjet(projet);
-      setOpenDetailsModal(true);
+      setOpenDetailsSlideOver(true);
     } catch (error) {
       console.error('Erreur lors de la répartition:', error);
       toast.error(error.response?.data?.message || 'Erreur lors de la répartition');
@@ -145,11 +174,71 @@ const MesProjets = () => {
     }
   };
 
+  const handleEditSujet = (sujet) => {
+    setEditingSujet(sujet);
+    setOpenEditSujetModal(true);
+  };
+
+  const handleUpdateSujet = async (formData) => {
+    if (!editingSujet) return;
+
+    if (!formData.titre_sujet || formData.titre_sujet.trim() === '') {
+      toast.error('Le titre du sujet est requis');
+      return;
+    }
+
+    try {
+      setSubmittingSujet(true);
+      await projectService.updateSujet(editingSujet.id, {
+        titre_sujet: formData.titre_sujet,
+        description: formData.description || null,
+      });
+      toast.success('Sujet mis à jour avec succès !');
+      setOpenEditSujetModal(false);
+      setEditingSujet(null);
+      // Recharger les détails du projet
+      if (selectedProjet) {
+        const updatedProjet = await projectService.getProjectById(selectedProjet.id);
+        setSelectedProjet(updatedProjet);
+      }
+      await loadProjets();
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour du sujet:', error);
+      toast.error(error.response?.data?.message || 'Erreur lors de la mise à jour du sujet');
+    } finally {
+      setSubmittingSujet(false);
+    }
+  };
+
+  const handleDeleteProject = async (projetId) => {
+    // Demander confirmation
+    if (!window.confirm('Êtes-vous sûr de vouloir supprimer ce projet ? Cette action est irréversible et supprimera également tous les sujets et groupes associés.')) {
+      return;
+    }
+
+    try {
+      setDeletingProjectId(projetId);
+      await projectService.deleteProject(projetId);
+      toast.success('Projet supprimé avec succès !');
+      await loadProjets();
+      // Fermer le slideOver de détails si le projet supprimé était affiché
+      if (selectedProjet && selectedProjet.id === projetId) {
+        setOpenDetailsSlideOver(false);
+        setSelectedProjet(null);
+      }
+    } catch (error) {
+      console.error('Erreur lors de la suppression du projet:', error);
+      toast.error(error.response?.data?.message || 'Erreur lors de la suppression du projet');
+    } finally {
+      setDeletingProjectId(null);
+    }
+  };
+
   const handleViewDetails = async (projetId) => {
     try {
       const projet = await projectService.getProjectById(projetId);
       setSelectedProjet(projet);
-      setOpenDetailsModal(true);
+      setOpenDetailsSlideOver(true);
     } catch (error) {
       console.error('Erreur lors du chargement des détails:', error);
       toast.error('Erreur lors du chargement des détails');
@@ -228,12 +317,40 @@ const MesProjets = () => {
                     </div>
                   )}
                   <div className="pt-3 border-t space-y-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button
+                        variant="outline"
+                        className="w-full"
+                        onClick={() => handleViewDetails(projet.id)}
+                      >
+                        Détails
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="w-full gap-2"
+                        onClick={() => handleEditProject(projet.id)}
+                      >
+                        <Edit className="h-4 w-4" />
+                        Modifier
+                      </Button>
+                    </div>
                     <Button
-                      variant="outline"
-                      className="w-full"
-                      onClick={() => handleViewDetails(projet.id)}
+                      variant="destructive"
+                      className="w-full gap-2"
+                      onClick={() => handleDeleteProject(projet.id)}
+                      disabled={deletingProjectId === projet.id}
                     >
-                      Voir les détails
+                      {deletingProjectId === projet.id ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Suppression...
+                        </>
+                      ) : (
+                        <>
+                          <Trash2 className="h-4 w-4" />
+                          Supprimer
+                        </>
+                      )}
                     </Button>
                     {projet.nb_sujets > 0 && projet.nb_groupes === 0 && (
                       <Button
@@ -265,207 +382,106 @@ const MesProjets = () => {
       {/* SlideOver Création Projet */}
       <ProjectSlideOver
         open={openCreateSlideOver}
+        mode="create"
         onClose={() => setOpenCreateSlideOver(false)}
         onSubmit={handleCreateProject}
         submitting={submitting}
       />
 
-      {/* Modal Ajout Sujets */}
-      <Dialog open={openSujetsModal} onOpenChange={setOpenSujetsModal}>
-        <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+      {/* SlideOver Modification Projet */}
+      <ProjectSlideOver
+        open={openEditSlideOver}
+        mode="edit"
+        initialProject={editingProjet}
+        onClose={() => {
+          setOpenEditSlideOver(false);
+          setEditingProjet(null);
+        }}
+        onSubmit={handleUpdateProject}
+        submitting={submitting}
+      />
+
+      {/* SlideOver Ajout Sujets */}
+      <SujetsSlideOver
+        open={openSujetsSlideOver}
+        projetId={selectedProjet?.id}
+        projetTitre={selectedProjet?.titre}
+        onClose={() => {
+          setOpenSujetsSlideOver(false);
+          setSelectedProjet(null);
+        }}
+        onSubmit={handleSaveSujets}
+        submitting={submitting}
+      />
+
+      {/* Modal Modification Sujet */}
+      <Dialog open={openEditSujetModal} onOpenChange={setOpenEditSujetModal}>
+        <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>Ajouter des sujets au projet</DialogTitle>
+            <DialogTitle>Modifier le sujet</DialogTitle>
             <DialogDescription>
-              Ajoutez plusieurs sujets (sous-projets) qui seront assignés aux groupes
+              Modifiez les informations du sujet
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            {sujets.map((sujet, index) => (
-              <Card key={index} className="p-4">
-                <div className="flex items-start justify-between mb-2">
-                  <Label className="text-sm font-medium">Sujet {index + 1}</Label>
-                  {sujets.length > 1 && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleRemoveSujet(index)}
-                      className="h-6 w-6"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <Input
-                    placeholder="Titre du sujet (ex: Application mobile)"
-                    value={sujet.titre_sujet}
-                    onChange={(e) => handleSujetChange(index, 'titre_sujet', e.target.value)}
-                  />
-                  <Textarea
-                    placeholder="Description du sujet (optionnel)"
-                    value={sujet.description}
-                    onChange={(e) => handleSujetChange(index, 'description', e.target.value)}
-                    rows={2}
-                  />
-                </div>
-              </Card>
-            ))}
-            <Button type="button" variant="outline" onClick={handleAddSujet} className="w-full">
-              <Plus className="h-4 w-4 mr-2" />
-              Ajouter un sujet
-            </Button>
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setOpenSujetsModal(false)}>
-              Annuler
-            </Button>
-            <Button onClick={handleSaveSujets}>Enregistrer les sujets</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Modal Détails Projet */}
-      <Dialog open={openDetailsModal} onOpenChange={setOpenDetailsModal}>
-        <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{selectedProjet?.titre}</DialogTitle>
-            <DialogDescription>{selectedProjet?.description}</DialogDescription>
-          </DialogHeader>
-          {selectedProjet && (
-            <div className="space-y-6 py-4">
-              {/* Informations générales */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-sm text-gray-600">Nombre d'étudiants par groupe</Label>
-                  <p className="font-semibold">{selectedProjet.nb_par_groupe}</p>
-                </div>
-                <div>
-                  <Label className="text-sm text-gray-600">Nombre de groupes</Label>
-                  <p className="font-semibold">{selectedProjet.groupes?.length || 0}</p>
-                </div>
-                {selectedProjet.niveaux && selectedProjet.niveaux.length > 0 && (
-                  <div>
-                    <Label className="text-sm text-gray-600">Niveaux concernés</Label>
-                    <p className="font-semibold">{selectedProjet.niveaux.join(', ')}</p>
-                  </div>
-                )}
-                {selectedProjet.date_debut && selectedProjet.date_fin && (
-                  <div>
-                    <Label className="text-sm text-gray-600">Période</Label>
-                    <p className="font-semibold text-sm">
-                      {new Date(selectedProjet.date_debut).toLocaleDateString('fr-FR')} - {new Date(selectedProjet.date_fin).toLocaleDateString('fr-FR')}
-                    </p>
-                  </div>
-                )}
+          {editingSujet && (
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit_titre_sujet">Titre du sujet *</Label>
+                <Input
+                  id="edit_titre_sujet"
+                  placeholder="Titre du sujet (ex: Application mobile)"
+                  value={editingSujet.titre_sujet || ''}
+                  onChange={(e) => setEditingSujet({ ...editingSujet, titre_sujet: e.target.value })}
+                />
               </div>
-
-              {/* Liste des sujets */}
-              {selectedProjet.sujets && selectedProjet.sujets.length > 0 && (
-                <div>
-                  <h3 className="font-semibold mb-3 flex items-center gap-2">
-                    <BookOpen className="h-4 w-4" />
-                    Sujets ({selectedProjet.sujets.length})
-                  </h3>
-                  <div className="space-y-2">
-                    {selectedProjet.sujets.map((sujet) => (
-                      <Card key={sujet.id} className="p-3">
-                        <h4 className="font-medium">{sujet.titre_sujet}</h4>
-                        {sujet.description && (
-                          <p className="text-sm text-gray-600 mt-1">{sujet.description}</p>
-                        )}
-                      </Card>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Liste des groupes */}
-              {selectedProjet.groupes && selectedProjet.groupes.length > 0 && (
-                <div>
-                  <h3 className="font-semibold mb-3 flex items-center gap-2">
-                    <Users className="h-4 w-4" />
-                    Groupes ({selectedProjet.groupes.length})
-                  </h3>
-                  <div className="space-y-4">
-                    {selectedProjet.groupes.map((groupe) => (
-                      <Card key={groupe.id} className="p-4">
-                        <div className="flex items-start justify-between mb-3">
-                          <div>
-                            <h4 className="font-semibold text-lg">Groupe {groupe.numero_groupe}</h4>
-                            {groupe.niveau && (
-                              <p className="text-sm text-purple-600 mt-1 font-medium">
-                                Niveau: {groupe.niveau}
-                              </p>
-                            )}
-                            {groupe.sujet && (
-                              <p className="text-sm text-blue-600 mt-1">
-                                Sujet: {groupe.sujet.titre_sujet}
-                              </p>
-                            )}
-                          </div>
-                          <span className="text-sm text-gray-600">
-                            {groupe.nb_etudiants || groupe.etudiants?.length || 0} étudiant(s)
-                          </span>
-                        </div>
-                        {groupe.etudiants && groupe.etudiants.length > 0 && (
-                          <div className="space-y-1 mt-3 pt-3 border-t">
-                            {groupe.etudiants.map((etudiant) => (
-                              <div key={etudiant.id} className="flex items-center justify-between text-sm">
-                                <div>
-                                  <span className="font-medium">{etudiant.nom}</span>
-                                  <span className="text-gray-600 ml-2">({etudiant.matricule})</span>
-                                </div>
-                                <span className="text-gray-500 text-xs">
-                                  {etudiant.filiere} - {etudiant.niveau}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </Card>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {(!selectedProjet.groupes || selectedProjet.groupes.length === 0) && (
-                <div className="text-center py-8 text-gray-500">
-                  <Users className="h-12 w-12 mx-auto mb-3 text-gray-400" />
-                  <p>Aucun groupe créé pour le moment</p>
-                  {selectedProjet.sujets && selectedProjet.sujets.length > 0 && (
-                    <Button
-                      className="mt-4 gap-2"
-                      onClick={() => {
-                        setOpenDetailsModal(false);
-                        handleRepartirEtudiants(selectedProjet.id);
-                      }}
-                      disabled={repartirLoading}
-                    >
-                      {repartirLoading ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          Répartition...
-                        </>
-                      ) : (
-                        <>
-                          <RefreshCw className="h-4 w-4" />
-                          Répartir automatiquement
-                        </>
-                      )}
-                    </Button>
-                  )}
-                </div>
-              )}
+              <div className="space-y-2">
+                <Label htmlFor="edit_description_sujet">Description</Label>
+                <Textarea
+                  id="edit_description_sujet"
+                  placeholder="Description du sujet (optionnel)"
+                  value={editingSujet.description || ''}
+                  onChange={(e) => setEditingSujet({ ...editingSujet, description: e.target.value })}
+                  rows={3}
+                />
+              </div>
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setOpenDetailsModal(false)}>
-              Fermer
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setOpenEditSujetModal(false);
+                setEditingSujet(null);
+              }}
+            >
+              Annuler
+            </Button>
+            <Button
+              onClick={() => handleUpdateSujet(editingSujet)}
+              disabled={submittingSujet || !editingSujet?.titre_sujet?.trim()}
+            >
+              {submittingSujet ? 'Enregistrement...' : 'Enregistrer'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* SlideOver Détails Projet */}
+      <ProjectDetailsSlideOver
+        open={openDetailsSlideOver}
+        projet={selectedProjet}
+        onClose={() => {
+          setOpenDetailsSlideOver(false);
+          setSelectedProjet(null);
+        }}
+        onEdit={handleEditProject}
+        onDelete={handleDeleteProject}
+        onRepartir={handleRepartirEtudiants}
+        onEditSujet={handleEditSujet}
+        deletingProjectId={deletingProjectId}
+        repartirLoading={repartirLoading}
+      />
     </div>
   );
 };

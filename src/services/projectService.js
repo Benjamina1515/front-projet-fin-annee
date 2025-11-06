@@ -19,9 +19,27 @@ export const projectService = {
     return response.data?.projet;
   },
 
+  // Mettre à jour un projet
+  updateProject: async (id, projectData) => {
+    const response = await api.put(`/projets/${id}`, projectData);
+    return response.data?.projet;
+  },
+
+  // Supprimer un projet
+  deleteProject: async (id) => {
+    const response = await api.delete(`/projets/${id}`);
+    return response.data;
+  },
+
   // Ajouter un sujet à un projet
   addSujet: async (sujetData) => {
     const response = await api.post('/sujets', sujetData);
+    return response.data?.sujet;
+  },
+
+  // Mettre à jour un sujet
+  updateSujet: async (id, sujetData) => {
+    const response = await api.put(`/sujets/${id}`, sujetData);
     return response.data?.sujet;
   },
 
