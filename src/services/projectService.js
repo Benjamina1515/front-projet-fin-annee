@@ -1,52 +1,34 @@
 import api from '../lib/api';
 
 export const projectService = {
-  // Récupérer tous les projets
+  // Récupérer tous les projets du professeur connecté
   getAllProjects: async () => {
-    const response = await api.get('/projects');
-    // Laravel renvoie { success: true, projects: [...] }
-    return response.data?.projects || response.data?.data || [];
+    const response = await api.get('/projets');
+    return response.data?.projets || [];
   },
 
-  // Récupérer un projet par ID
+  // Récupérer un projet par ID avec détails
   getProjectById: async (id) => {
-    const response = await api.get(`/projects/${id}`);
-    // Laravel renvoie { success: true, project: {...} }
-    return response.data?.project || response.data?.data;
+    const response = await api.get(`/projets/${id}`);
+    return response.data?.projet;
   },
 
-  // Créer un projet (Admin)
+  // Créer un projet
   createProject: async (projectData) => {
-    const response = await api.post('/projects', projectData);
-    // Laravel renvoie { success: true, project: {...} }
-    return response.data?.project || response.data?.data;
+    const response = await api.post('/projets', projectData);
+    return response.data?.projet;
   },
 
-  // Mettre à jour un projet
-  updateProject: async (id, projectData) => {
-    const response = await api.put(`/projects/${id}`, projectData);
-    // Laravel renvoie { success: true, project: {...} }
-    return response.data?.project || response.data?.data;
+  // Ajouter un sujet à un projet
+  addSujet: async (sujetData) => {
+    const response = await api.post('/sujets', sujetData);
+    return response.data?.sujet;
   },
 
-  // Supprimer un projet (Admin)
-  deleteProject: async (id) => {
-    const response = await api.delete(`/projects/${id}`);
-    return response.data;
-  },
-
-  // Récupérer les projets d'un étudiant (filtrés automatiquement par Laravel)
-  getStudentProjects: async (studentId) => {
-    const response = await api.get('/projects');
-    // Laravel filtre automatiquement selon le rôle, on reçoit tous les projets filtrés
-    return response.data?.projects || response.data?.data || [];
-  },
-
-  // Récupérer les projets d'un professeur (filtrés automatiquement par Laravel)
-  getProfessorProjects: async (professorId) => {
-    const response = await api.get('/projects');
-    // Laravel filtre automatiquement selon le rôle
-    return response.data?.projects || response.data?.data || [];
+  // Répartir automatiquement les étudiants
+  repartirEtudiants: async (projetId) => {
+    const response = await api.post(`/projets/${projetId}/repartition`);
+    return response.data?.projet;
   },
 };
 
