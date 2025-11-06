@@ -4,6 +4,28 @@ import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Card } from '../../components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '../../components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui/dialog';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from '../../components/ui/pagination';
 import { MoreVertical, Search, Plus, Edit, Trash2 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import UserSlideOver from '../../components/admin/UserSlideOver';
@@ -22,6 +44,16 @@ const roleBadge = (role) => {
   );
 };
 
+const formatDate = (dateString) => {
+  if (!dateString) return 'N/A';
+  const date = new Date(dateString);
+  return date.toLocaleDateString('fr-FR', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+};
+
 const UsersManagement = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -30,6 +62,10 @@ const UsersManagement = () => {
   const [panelMode, setPanelMode] = useState('create');
   const [currentUser, setCurrentUser] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8;
 
   useEffect(() => {
     fetchUsers();
@@ -77,6 +113,7 @@ const UsersManagement = () => {
       }
       setPanelOpen(false);
       fetchUsers();
+      setCurrentPage(1); // Reset to first page after action
     } catch (e) {
       toast.error(e?.response?.data?.message || 'Action impossible');
     } finally {
@@ -84,12 +121,24 @@ const UsersManagement = () => {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!confirm('Supprimer cet utilisateur ?')) return;
+  const handleDeleteClick = (user) => {
+    setUserToDelete(user);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!userToDelete) return;
     try {
-      await userService.deleteUser(id);
+      await userService.deleteUser(userToDelete.id);
       toast.success('Utilisateur supprimé');
+      setDeleteDialogOpen(false);
+      setUserToDelete(null);
       fetchUsers();
+      // Adjust page if current page becomes empty
+      const totalPages = Math.ceil(filtered.length / itemsPerPage);
+      if (currentPage > totalPages && totalPages > 0) {
+        setCurrentPage(totalPages);
+      }
     } catch (e) {
       toast.error("Suppression impossible");
     }
@@ -104,6 +153,17 @@ const UsersManagement = () => {
       (u.role || '').toLowerCase().includes(q)
     );
   }, [users, query]);
+
+  // Pagination logic
+  const totalPages = Math.ceil(filtered.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedUsers = filtered.slice(startIndex, endIndex);
+
+  useEffect(() => {
+    // Reset to page 1 when search query changes
+    setCurrentPage(1);
+  }, [query]);
 
   if (loading) {
     return (
@@ -144,11 +204,12 @@ const UsersManagement = () => {
               <TableRow>
                 <TableHead>User name</TableHead>
                 <TableHead>Access</TableHead>
+                <TableHead>Created at</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map((u) => (
+              {paginatedUsers.map((u) => (
                 <TableRow key={u.id} className="hover:bg-gray-50">
                   <TableCell>
                     <div className="flex items-center gap-3">
@@ -173,24 +234,34 @@ const UsersManagement = () => {
                     </div>
                   </TableCell>
                   <TableCell>{roleBadge(u.role)}</TableCell>
+                  <TableCell>{formatDate(u.created_at)}</TableCell>
                   <TableCell className="text-right">
-                    <div className="inline-flex items-center gap-2">
-                      <Button variant="ghost" size="icon" title="Edit" onClick={() => handleEdit(u)}>
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" title="Delete" onClick={() => handleDelete(u.id)}>
-                        <Trash2 className="h-4 w-4 text-red-600" />
-                      </Button>
-                      <Button variant="ghost" size="icon" title="More">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger>
+                        <Button variant="ghost" size="icon" title="More">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent>
+                        <DropdownMenuItem onClick={() => handleEdit(u)}>
+                          <Edit className="h-4 w-4 mr-2" />
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={() => handleDeleteClick(u)}
+                          className="text-red-600 focus:text-red-600"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                 </TableRow>
               ))}
-              {filtered.length === 0 && (
+              {paginatedUsers.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={3} className="text-center text-sm text-gray-500 py-8">
+                  <TableCell colSpan={4} className="text-center text-sm text-gray-500 py-8">
                     Aucun utilisateur
                   </TableCell>
                 </TableRow>
@@ -198,6 +269,39 @@ const UsersManagement = () => {
             </TableBody>
           </Table>
         </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="mt-4 flex justify-center">
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious 
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                  />
+                </PaginationItem>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                  <PaginationItem key={page}>
+                    <PaginationLink
+                      onClick={() => setCurrentPage(page)}
+                      isActive={currentPage === page}
+                      className="cursor-pointer"
+                    >
+                      {page}
+                    </PaginationLink>
+                  </PaginationItem>
+                ))}
+                <PaginationItem>
+                  <PaginationNext
+                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                    className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          </div>
+        )}
       </Card>
 
       <UserSlideOver
@@ -208,9 +312,38 @@ const UsersManagement = () => {
         onSubmit={handleSubmit}
         submitting={submitting}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Supprimer l'utilisateur</DialogTitle>
+            <DialogDescription>
+              Êtes-vous sûr de vouloir supprimer l'utilisateur <strong>{userToDelete?.nom}</strong> ({userToDelete?.email}) ?
+              Cette action est irréversible.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setDeleteDialogOpen(false);
+                setUserToDelete(null);
+              }}
+            >
+              Annuler
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteConfirm}
+            >
+              Supprimer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
 
 export default UsersManagement;
-
