@@ -152,62 +152,99 @@ export default function ProjectDetailsSlideOver({
         doc.text(`Période: ${dateDebut} - ${dateFin}`, 14, yPos);
       }
       
-      // Créer un conteneur temporaire pour capturer tout le tableau
-      const tableElement = tableRef.current;
-      const originalOverflow = tableElement.parentElement.style.overflow;
-      const originalMaxHeight = tableElement.parentElement.style.maxHeight;
+      // Récupérer le conteneur du tableau (ref attaché au conteneur externe)
+      const outerContainer = tableRef.current;
+      const containerDiv = outerContainer.querySelector('div'); // div avec overflow-x-auto
+      
+      if (!outerContainer || !containerDiv) {
+        console.error('Conteneurs non trouvés');
+        return;
+      }
+      
+      // Sauvegarder les styles originaux
+      const originalOuterOverflow = outerContainer.style.overflow;
+      const originalOuterMaxHeight = outerContainer.style.maxHeight;
+      const originalInnerOverflow = containerDiv.style.overflow;
+      const originalInnerMaxHeight = containerDiv.style.maxHeight;
+      const originalInnerOverflowX = containerDiv.style.overflowX;
+      const originalInnerOverflowY = containerDiv.style.overflowY;
       
       // Rendre tout le tableau visible pour la capture
-      tableElement.parentElement.style.overflow = 'visible';
-      tableElement.parentElement.style.maxHeight = 'none';
+      outerContainer.style.overflow = 'visible';
+      outerContainer.style.maxHeight = 'none';
+      containerDiv.style.overflow = 'visible';
+      containerDiv.style.maxHeight = 'none';
+      containerDiv.style.overflowX = 'visible';
+      containerDiv.style.overflowY = 'visible';
       
-      // Capturer le tableau HTML avec html2canvas
-      const canvas = await html2canvas(tableElement, {
-        scale: 2, // Meilleure qualité
+      // Attendre que le rendu se stabilise
+      await new Promise(resolve => setTimeout(resolve, 200));
+      
+      // Capturer le conteneur complet avec html2canvas - options optimisées
+      const canvas = await html2canvas(outerContainer, {
+        scale: 3, // Haute qualité
         useCORS: true,
         logging: false,
         backgroundColor: '#ffffff',
-        allowTaint: true
+        allowTaint: true,
+        removeContainer: false,
+        imageTimeout: 15000,
+        width: outerContainer.scrollWidth,
+        height: outerContainer.scrollHeight,
+        x: 0,
+        y: 0,
+        scrollX: 0,
+        scrollY: 0,
+        windowWidth: outerContainer.scrollWidth,
+        windowHeight: outerContainer.scrollHeight
       });
       
       // Restaurer les styles originaux
-      tableElement.parentElement.style.overflow = originalOverflow;
-      tableElement.parentElement.style.maxHeight = originalMaxHeight;
+      outerContainer.style.overflow = originalOuterOverflow;
+      outerContainer.style.maxHeight = originalOuterMaxHeight;
+      containerDiv.style.overflow = originalInnerOverflow;
+      containerDiv.style.maxHeight = originalInnerMaxHeight;
+      containerDiv.style.overflowX = originalInnerOverflowX;
+      containerDiv.style.overflowY = originalInnerOverflowY;
       
-      const imgData = canvas.toDataURL('image/png');
+      const imgData = canvas.toDataURL('image/png', 1.0);
       const pageWidth = doc.internal.pageSize.getWidth();
       const pageHeight = doc.internal.pageSize.getHeight();
       const margin = 14;
+      
+      // Calculer les dimensions pour occuper toute la largeur disponible
       const imgWidth = pageWidth - (margin * 2);
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
       
-      // Ajouter l'image du tableau au PDF avec pagination automatique
+      // Ajouter l'image du tableau au PDF avec pagination automatique améliorée
       let heightLeft = imgHeight;
       let position = yPos + 10;
       
       // Première page
       if (heightLeft > pageHeight - position - margin) {
-        doc.addImage(imgData, 'PNG', margin, position, imgWidth, pageHeight - position - margin);
-        heightLeft -= (pageHeight - position - margin);
+        const firstPageHeight = pageHeight - position - margin;
+        doc.addImage(imgData, 'PNG', margin, position, imgWidth, firstPageHeight);
+        heightLeft -= firstPageHeight;
         
-        // Pages supplémentaires
+        // Pages supplémentaires avec meilleure gestion de la pagination
+        let sourceY = 0;
         while (heightLeft > 0) {
           doc.addPage();
           const pageImgHeight = Math.min(heightLeft, pageHeight - margin * 2);
-          const sourceY = (imgHeight - heightLeft) * (canvas.height / imgHeight);
-          doc.addImage(
-            imgData,
-            'PNG',
-            margin,
-            margin,
-            imgWidth,
-            pageImgHeight,
-            undefined,
-            'FAST',
-            0,
-            sourceY
-          );
+          const sourceHeight = (pageImgHeight / imgHeight) * canvas.height;
+          
+          // Créer un canvas temporaire pour la partie de l'image à afficher
+          const tempCanvas = document.createElement('canvas');
+          tempCanvas.width = canvas.width;
+          tempCanvas.height = sourceHeight;
+          const tempCtx = tempCanvas.getContext('2d');
+          tempCtx.drawImage(canvas, 0, sourceY, canvas.width, sourceHeight, 0, 0, canvas.width, sourceHeight);
+          
+          const tempImgData = tempCanvas.toDataURL('image/png', 1.0);
+          doc.addImage(tempImgData, 'PNG', margin, margin, imgWidth, pageImgHeight);
+          
           heightLeft -= pageImgHeight;
+          sourceY += sourceHeight;
         }
       } else {
         // L'image tient sur une seule page
@@ -251,12 +288,25 @@ export default function ProjectDetailsSlideOver({
       doc.text(`Période: ${dateDebut} - ${dateFin}`, 14, yPos);
     }
     
-    // Configuration du tableau
+    // Configuration du tableau - optimiser les largeurs pour occuper toute la largeur
     const startY = yPos + 10;
     const pageWidth = doc.internal.pageSize.getWidth();
     const margin = 14;
     const tableWidth = pageWidth - (margin * 2);
-    const colWidths = [20, 35, 40, 35, 30, 60]; // Largeurs des colonnes en mm
+    
+    // Calculer les largeurs de colonnes proportionnelles pour occuper toute la largeur
+    // Ordre: Groupe, Matricule, Nom, Filière, Niveau Étudiant, Sujet
+    const totalBaseWidth = 20 + 35 + 40 + 35 + 30 + 60; // Largeurs de base
+    const scaleFactor = tableWidth / totalBaseWidth;
+    const colWidths = [
+      Math.round(20 * scaleFactor),  // Groupe
+      Math.round(35 * scaleFactor),   // Matricule
+      Math.round(40 * scaleFactor),   // Nom
+      Math.round(35 * scaleFactor),   // Filière
+      Math.round(30 * scaleFactor),   // Niveau Étudiant
+      Math.round(60 * scaleFactor)    // Sujet
+    ];
+    
     const rowHeight = 8;
     const headerHeight = 10;
     
@@ -614,9 +664,9 @@ export default function ProjectDetailsSlideOver({
                 </div>
               </div>
               
-              <div className="border border-gray-300 rounded-lg overflow-hidden bg-white shadow-sm">
+              <div className="border border-gray-300 rounded-lg overflow-hidden bg-white shadow-sm" ref={tableRef}>
                 <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
-                  <table className="min-w-full border-collapse bg-white" ref={tableRef}>
+                  <table className="min-w-full border-collapse bg-white">
                     <thead className="sticky top-0 z-10 bg-gray-100">
                       <tr className="border-b border-gray-300">
                         <th className="font-semibold text-gray-800 bg-gray-100 border-r border-gray-300 px-4 py-3 text-sm text-center min-w-[80px] sticky left-0 z-20 bg-gray-100 shadow-[2px_0_2px_-1px_rgba(0,0,0,0.1)]">
