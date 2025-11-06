@@ -5,6 +5,7 @@ import { Button } from '../../components/ui/button';
 import { Select } from '../../components/ui/select';
 import { Separator } from '../../components/ui/separator';
 import { X, Pencil } from 'lucide-react';
+import { getAvatarUrl } from '../../utils/avatar';
 
 const roles = [
   { value: 'admin', label: 'Admin' },
@@ -25,7 +26,9 @@ export default function UserSlideOver({ open, mode = 'create', initialUser, onCl
     if (mode === 'edit' && initialUser) {
       setForm({ nom: initialUser.nom || '', email: initialUser.email || '', role: initialUser.role || 'etudiant', password: '' });
       setAvatar(null);
-      setAvatarPreview(initialUser.avatarUrl || '');
+      // Construire l'URL de l'avatar avec baseURL/storage/{nom-de-image}
+      const avatarPath = initialUser.avatar || initialUser.avatar_url || '';
+      setAvatarPreview(avatarPath ? getAvatarUrl(avatarPath) : '');
     } else {
       setForm({ nom: '', email: '', role: 'etudiant', password: '' });
       setAvatar(null);

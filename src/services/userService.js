@@ -22,14 +22,13 @@ export const userService = {
     formData.append('email', userData.email);
     formData.append('role', userData.role);
     formData.append('password', userData.password);
-    if (userData.avatar) {
+    // Ajouter l'avatar seulement si c'est un fichier File
+    if (userData.avatar && userData.avatar instanceof File) {
       formData.append('avatar', userData.avatar);
     }
 
     const response = await api.post('/users', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      }
+      // Ne pas définir Content-Type manuellement, axios le fera automatiquement avec le bon boundary
     });
     // Laravel renvoie { success: true, user: {...} }
     return response.data?.user || response.data?.data;
@@ -38,18 +37,20 @@ export const userService = {
   // Mettre à jour un utilisateur (avec avatar optionnel)
   updateUser: async (id, userData) => {
     const formData = new FormData();
+    // Ajouter _method=PUT pour Laravel method spoofing (nécessaire pour FormData)
+    formData.append('_method', 'PUT');
     if (userData.nom) formData.append('nom', userData.nom);
     if (userData.email) formData.append('email', userData.email);
     if (userData.role) formData.append('role', userData.role);
     if (userData.password) formData.append('password', userData.password);
-    if (userData.avatar) {
+    // Ajouter l'avatar seulement si c'est un fichier File (nouveau fichier sélectionné)
+    if (userData.avatar && userData.avatar instanceof File) {
       formData.append('avatar', userData.avatar);
     }
 
-    const response = await api.put(`/users/${id}`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      }
+    // Utiliser POST avec _method=PUT pour être compatible avec FormData
+    const response = await api.post(`/users/${id}`, formData, {
+      // Ne pas définir Content-Type manuellement, axios le fera automatiquement avec le bon boundary
     });
     // Laravel renvoie { success: true, user: {...} }
     return response.data?.user || response.data?.data;

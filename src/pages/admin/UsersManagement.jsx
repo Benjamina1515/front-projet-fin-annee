@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { MoreVertical, Search, Plus, Edit, Trash2 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import UserSlideOver from '../../components/admin/UserSlideOver';
+import { getAvatarUrl } from '../../utils/avatar';
 
 const roleBadge = (role) => {
   const styles = {
@@ -67,7 +68,10 @@ const UsersManagement = () => {
       } else if (panelMode === 'edit' && currentUser) {
         const payload = { nom: data.nom, email: data.email, role: data.role };
         if (data.password) payload.password = data.password;
-        if (data.avatar) payload.avatar = data.avatar;
+        // Ajouter l'avatar seulement si c'est un nouveau fichier (File object)
+        if (data.avatar && data.avatar instanceof File) {
+          payload.avatar = data.avatar;
+        }
         await userService.updateUser(currentUser.id, payload);
         toast.success('Utilisateur mis à jour');
       }
@@ -148,7 +152,20 @@ const UsersManagement = () => {
                 <TableRow key={u.id} className="hover:bg-gray-50">
                   <TableCell>
                     <div className="flex items-center gap-3">
-                      <div className="h-8 w-8 rounded-full bg-gray-200" />
+                      {u.avatar ? (
+                        <img 
+                          src={getAvatarUrl(u.avatar)} 
+                          alt={u.nom} 
+                          className="h-8 w-8 rounded-full object-cover"
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                            e.target.nextSibling.style.display = 'flex';
+                          }}
+                        />
+                      ) : null}
+                      <div className={`h-8 w-8 rounded-full bg-gray-200 ${u.avatar ? 'hidden' : 'flex items-center justify-center'}`}>
+                        {!u.avatar && <span className="text-xs text-gray-400">{u.nom?.charAt(0)?.toUpperCase() || 'U'}</span>}
+                      </div>
                       <div>
                         <div className="text-sm font-medium text-gray-900">{u.nom}</div>
                         <div className="text-xs text-gray-500">{u.email}</div>
