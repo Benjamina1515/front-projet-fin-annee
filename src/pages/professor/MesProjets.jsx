@@ -174,9 +174,13 @@ const MesProjets = () => {
     }
   };
 
-  const handleEditSujet = (sujet) => {
-    setEditingSujet(sujet);
-    setOpenEditSujetModal(true);
+  const handleEditSujet = async (updatedProjet) => {
+    // Mettre à jour le projet sélectionné avec les nouvelles données
+    if (updatedProjet && selectedProjet && updatedProjet.id === selectedProjet.id) {
+      setSelectedProjet(updatedProjet);
+    }
+    // Recharger la liste des projets
+    await loadProjets();
   };
 
   const handleUpdateSujet = async (formData) => {
@@ -416,7 +420,7 @@ const MesProjets = () => {
 
       {/* Modal Modification Sujet */}
       <Dialog open={openEditSujetModal} onOpenChange={setOpenEditSujetModal}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[500px] z-[60]">
           <DialogHeader>
             <DialogTitle>Modifier le sujet</DialogTitle>
             <DialogDescription>

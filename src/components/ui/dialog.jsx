@@ -37,7 +37,7 @@ const DialogOverlay = React.forwardRef(({ className, ...props }, ref) => {
     <div
       ref={ref}
       className={cn(
-        "fixed inset-0 z-50 bg-black/80",
+        "fixed inset-0 z-[60] bg-black/80",
         className
       )}
       onClick={() => onOpenChange?.(false)}
@@ -58,7 +58,7 @@ const DialogContent = React.forwardRef(({ className, children, ...props }, ref) 
       <div
         ref={ref}
         className={cn(
-          "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-white p-6 shadow-lg duration-200 rounded-lg",
+          "fixed left-[50%] top-[50%] z-[60] grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-white p-6 shadow-lg duration-200 rounded-lg",
           className
         )}
         onClick={(e) => e.stopPropagation()}

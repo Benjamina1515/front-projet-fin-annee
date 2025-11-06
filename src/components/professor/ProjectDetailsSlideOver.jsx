@@ -1,11 +1,15 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '../ui/button';
 import { Label } from '../ui/label';
+import { Input } from '../ui/input';
+import { Textarea } from '../ui/textarea';
 import { Card } from '../ui/card';
 import { Separator } from '../ui/separator';
-import { X, BookOpen, Users, Edit, Loader2, RefreshCw, Download, FileText } from 'lucide-react';
+import { X, BookOpen, Users, Edit, Loader2, RefreshCw, Download, FileText, Check } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import { projectService } from '../../services/projectService';
+import { toast } from 'react-toastify';
 
 const SIDEBAR_WIDTH_PX = 256;
 
@@ -18,6 +22,9 @@ export default function ProjectDetailsSlideOver({
   repartirLoading
 }) {
   const tableRef = useRef(null);
+  const [editingSujetId, setEditingSujetId] = useState(null);
+  const [editingSujetData, setEditingSujetData] = useState({ titre_sujet: '', description: '' });
+  const [updatingSujet, setUpdatingSujet] = useState(false);
 
   useEffect(() => {
     const onKey = (e) => {
@@ -70,6 +77,54 @@ export default function ProjectDetailsSlideOver({
   }, [projet?.groupes]);
 
   if (!projet) return null;
+
+  // Fonction pour démarrer l'édition d'un sujet
+  const handleStartEditSujet = (sujet) => {
+    setEditingSujetId(sujet.id);
+    setEditingSujetData({
+      titre_sujet: sujet.titre_sujet || '',
+      description: sujet.description || ''
+    });
+  };
+
+  // Fonction pour annuler l'édition
+  const handleCancelEditSujet = () => {
+    setEditingSujetId(null);
+    setEditingSujetData({ titre_sujet: '', description: '' });
+  };
+
+  // Fonction pour sauvegarder les modifications d'un sujet
+  const handleSaveSujet = async (sujetId) => {
+    if (!editingSujetData.titre_sujet || editingSujetData.titre_sujet.trim() === '') {
+      toast.error('Le titre du sujet est requis');
+      return;
+    }
+
+    try {
+      setUpdatingSujet(true);
+      await projectService.updateSujet(sujetId, {
+        titre_sujet: editingSujetData.titre_sujet,
+        description: editingSujetData.description || null,
+      });
+      toast.success('Sujet mis à jour avec succès !');
+      setEditingSujetId(null);
+      setEditingSujetData({ titre_sujet: '', description: '' });
+      
+      // Recharger les données du projet et notifier le parent
+      if (projet) {
+        const updatedProjet = await projectService.getProjectById(projet.id);
+        // Notifier le parent pour qu'il mette à jour le projet
+        if (onEditSujet) {
+          onEditSujet(updatedProjet);
+        }
+      }
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour du sujet:', error);
+      toast.error(error.response?.data?.message || 'Erreur lors de la mise à jour du sujet');
+    } finally {
+      setUpdatingSujet(false);
+    }
+  };
 
   // Fonction d'export CSV - Chaque ligne contient toutes les informations
   const exportToCSV = () => {
@@ -566,24 +621,83 @@ export default function ProjectDetailsSlideOver({
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {projet.sujets.map((sujet) => (
                   <Card key={sujet.id} className="p-4 hover:shadow-md transition-shadow">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1 space-y-2">
-                        <h4 className="font-semibold text-base">{sujet.titre_sujet}</h4>
-                        {sujet.description && (
-                          <p className="text-sm text-gray-600 line-clamp-3">{sujet.description}</p>
+                    {editingSujetId === sujet.id ? (
+                      // Mode édition
+                      <div className="space-y-3">
+                        <div className="space-y-2">
+                          <Label htmlFor={`edit_titre_${sujet.id}`}>Titre du sujet *</Label>
+                          <Input
+                            id={`edit_titre_${sujet.id}`}
+                            placeholder="Titre du sujet"
+                            value={editingSujetData.titre_sujet}
+                            onChange={(e) => setEditingSujetData({ ...editingSujetData, titre_sujet: e.target.value })}
+                            disabled={updatingSujet}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor={`edit_description_${sujet.id}`}>Description</Label>
+                          <Textarea
+                            id={`edit_description_${sujet.id}`}
+                            placeholder="Description du sujet (optionnel)"
+                            value={editingSujetData.description}
+                            onChange={(e) => setEditingSujetData({ ...editingSujetData, description: e.target.value })}
+                            rows={3}
+                            disabled={updatingSujet}
+                          />
+                        </div>
+                        <div className="flex gap-2 justify-end">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleCancelEditSujet}
+                            disabled={updatingSujet}
+                          >
+                            <X className="h-4 w-4 mr-1" />
+                            Annuler
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={() => handleSaveSujet(sujet.id)}
+                            disabled={updatingSujet || !editingSujetData.titre_sujet?.trim()}
+                          >
+                            {updatingSujet ? (
+                              <>
+                                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                                Enregistrement...
+                              </>
+                            ) : (
+                              <>
+                                <Check className="h-4 w-4 mr-1" />
+                                Confirmer
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      // Mode affichage
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 space-y-2">
+                          <h4 className="font-semibold text-base">{sujet.titre_sujet}</h4>
+                          {sujet.description && (
+                            <p className="text-sm text-gray-600 line-clamp-3">{sujet.description}</p>
+                          )}
+                        </div>
+                        {onEditSujet && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 flex-shrink-0"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleStartEditSujet(sujet);
+                            }}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
                         )}
                       </div>
-                      {onEditSujet && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 flex-shrink-0"
-                          onClick={() => onEditSujet(sujet)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
+                    )}
                   </Card>
                 ))}
               </div>
