@@ -3,7 +3,7 @@ import { Button } from '../ui/button';
 import { Label } from '../ui/label';
 import { Card } from '../ui/card';
 import { Separator } from '../ui/separator';
-import { X, BookOpen, Users, Edit, Trash2, Loader2, RefreshCw, Download, FileText } from 'lucide-react';
+import { X, BookOpen, Users, Edit, Loader2, RefreshCw, Download, FileText } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
@@ -13,11 +13,8 @@ export default function ProjectDetailsSlideOver({
   open, 
   projet, 
   onClose, 
-  onEdit, 
-  onDelete, 
   onRepartir,
   onEditSujet,
-  deletingProjectId,
   repartirLoading
 }) {
   const tableRef = useRef(null);
@@ -554,47 +551,6 @@ export default function ProjectDetailsSlideOver({
                   </p>
                 </div>
               )}
-            </div>
-          </section>
-
-          <Separator />
-
-          {/* Actions */}
-          <section className="space-y-4">
-            <h3 className="text-lg font-semibold text-slate-900">Actions</h3>
-            <div className="flex gap-2 flex-wrap">
-              <Button
-                variant="outline"
-                className="gap-2"
-                onClick={() => {
-                  onClose();
-                  onEdit?.(projet.id);
-                }}
-              >
-                <Edit className="h-4 w-4" />
-                Modifier le projet
-              </Button>
-              <Button
-                variant="destructive"
-                className="gap-2"
-                onClick={() => {
-                  onClose();
-                  onDelete?.(projet.id);
-                }}
-                disabled={deletingProjectId === projet.id}
-              >
-                {deletingProjectId === projet.id ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Suppression...
-                  </>
-                ) : (
-                  <>
-                    <Trash2 className="h-4 w-4" />
-                    Supprimer le projet
-                  </>
-                )}
-              </Button>
             </div>
           </section>
 

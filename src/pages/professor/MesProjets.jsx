@@ -475,11 +475,8 @@ const MesProjets = () => {
           setOpenDetailsSlideOver(false);
           setSelectedProjet(null);
         }}
-        onEdit={handleEditProject}
-        onDelete={handleDeleteProject}
         onRepartir={handleRepartirEtudiants}
         onEditSujet={handleEditSujet}
-        deletingProjectId={deletingProjectId}
         repartirLoading={repartirLoading}
       />
     </div>
