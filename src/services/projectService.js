@@ -7,6 +7,12 @@ export const projectService = {
     return response.data?.projets || [];
   },
 
+  // Récupérer tous les projets (pour admin)
+  getAllProjectsAdmin: async () => {
+    const response = await api.get('/admin/projets');
+    return response.data?.projets || [];
+  },
+
   // Récupérer un projet par ID avec détails
   getProjectById: async (id) => {
     const response = await api.get(`/projets/${id}`);

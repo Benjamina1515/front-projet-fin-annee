@@ -14,6 +14,7 @@ import Login from './pages/Login';
 // Pages Admin
 import AdminDashboard from './pages/admin/AdminDashboard';
 import UsersManagement from './pages/admin/UsersManagement';
+import ProjectsManagement from './pages/admin/ProjectsManagement';
 
 // Pages Professeur
 import ProfessorDashboard from './pages/professor/ProfessorDashboard';
@@ -44,7 +45,7 @@ function App() {
             <Route path="users" element={<UsersManagement />} />
             <Route path="users/profs" element={<UsersManagement roleFilter="prof" />} />
             <Route path="users/etudiants" element={<UsersManagement roleFilter="etudiant" />} />
-            <Route path="projects" element={<div>Gestion des Projets (À implémenter)</div>} />
+            <Route path="projects" element={<ProjectsManagement />} />
             <Route path="settings" element={<div>Paramètres (À implémenter)</div>} />
           </Route>
 
