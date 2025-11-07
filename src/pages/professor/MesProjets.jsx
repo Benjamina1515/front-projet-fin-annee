@@ -381,7 +381,7 @@ const MesProjets = () => {
                     </div>
                     <Button
                       variant="destructive"
-                      className="w-full gap-2"
+                      className="w-full gap-2 text-white"
                       onClick={() => handleDeleteProject(projet.id)}
                       disabled={deletingProjectId === projet.id}
                     >
