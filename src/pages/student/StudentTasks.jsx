@@ -1,33 +1,10 @@
 import { useState } from 'react';
 import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragOverlay,
-  useDroppable,
-} from '@dnd-kit/core';
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  useSortable,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
-import { motion } from 'framer-motion';
-import {
   Plus,
   LayoutGrid,
   List,
   Calendar,
-  GripVertical,
   Calendar as CalendarIcon,
-  AlertCircle,
-  CheckCircle2,
-  Clock,
   Trash2,
   Edit2,
 } from 'lucide-react';
@@ -52,7 +29,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select-new';
-import { ScrollArea } from '@/components/ui/scroll-area';
 
 // Types de statut
 const STATUS_TYPES = {
@@ -122,10 +98,9 @@ const initialTasks = [
 
 const StudentTasks = () => {
   const [tasks, setTasks] = useState(initialTasks);
-  const [viewMode, setViewMode] = useState('board'); // board, list, calendar
+  const [viewMode, setViewMode] = useState('list'); // board, list, calendar
   const [isNewTaskOpen, setIsNewTaskOpen] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
-  const [activeId, setActiveId] = useState(null);
   const [newTask, setNewTask] = useState({
     title: '',
     description: '',
@@ -134,65 +109,6 @@ const StudentTasks = () => {
     status: STATUS_TYPES.TODO,
   });
 
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
-
-  // Organiser les tâches par statut
-  const tasksByStatus = {
-    [STATUS_TYPES.TODO]: tasks.filter((t) => t.status === STATUS_TYPES.TODO),
-    [STATUS_TYPES.IN_PROGRESS]: tasks.filter((t) => t.status === STATUS_TYPES.IN_PROGRESS),
-    [STATUS_TYPES.OVERDUE]: tasks.filter((t) => t.status === STATUS_TYPES.OVERDUE),
-    [STATUS_TYPES.DONE]: tasks.filter((t) => t.status === STATUS_TYPES.DONE),
-  };
-
-  const handleDragStart = (event) => {
-    setActiveId(event.active.id);
-  };
-
-  const handleDragEnd = (event) => {
-    const { active, over } = event;
-    setActiveId(null);
-
-    if (!over) return;
-
-    const activeTask = tasks.find((t) => t.id === active.id);
-    if (!activeTask) return;
-
-    // Si on dépose dans une colonne (zone de drop)
-    if (typeof over.id === 'string' && over.id.startsWith('droppable-')) {
-      const newStatus = over.id.replace('droppable-', '');
-      if (activeTask.status !== newStatus) {
-        setTasks((prevTasks) =>
-          prevTasks.map((task) =>
-            task.id === active.id ? { ...task, status: newStatus } : task
-          )
-        );
-      }
-      return;
-    }
-
-    // Si on dépose sur une autre tâche dans la même colonne
-    const overTask = tasks.find((t) => t.id === over.id);
-    if (overTask && activeTask.status === overTask.status) {
-      const oldIndex = tasks.findIndex((t) => t.id === active.id);
-      const newIndex = tasks.findIndex((t) => t.id === over.id);
-
-      if (oldIndex !== newIndex) {
-        setTasks((prevTasks) => arrayMove(prevTasks, oldIndex, newIndex));
-      }
-    } else if (overTask && activeTask.status !== overTask.status) {
-      // Déplacer vers une autre colonne
-      setTasks((prevTasks) =>
-        prevTasks.map((task) =>
-          task.id === active.id ? { ...task, status: overTask.status } : task
-        )
-      );
-    }
-  };
 
   const handleAddTask = () => {
     if (!newTask.title.trim()) return;
@@ -250,19 +166,6 @@ const StudentTasks = () => {
     }
   };
 
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case STATUS_TYPES.IN_PROGRESS:
-        return <Clock className="h-4 w-4 text-orange-500" />;
-      case STATUS_TYPES.OVERDUE:
-        return <AlertCircle className="h-4 w-4 text-red-500" />;
-      case STATUS_TYPES.DONE:
-        return <CheckCircle2 className="h-4 w-4 text-green-500" />;
-      default:
-        return null;
-    }
-  };
-
   const getStatusLabel = (status) => {
     switch (status) {
       case STATUS_TYPES.TODO:
@@ -278,162 +181,8 @@ const StudentTasks = () => {
     }
   };
 
-  // Composant TaskCard avec drag-and-drop
-  const TaskCard = ({ task }) => {
-    const {
-      attributes,
-      listeners,
-      setNodeRef,
-      transform,
-      transition,
-      isDragging,
-    } = useSortable({ id: task.id });
-
-    const style = {
-      transform: CSS.Transform.toString(transform),
-      transition,
-      opacity: isDragging ? 0.5 : 1,
-    };
-
-    return (
-      <motion.div
-        ref={setNodeRef}
-        style={style}
-        whileHover={{ y: -2 }}
-        className="group"
-      >
-        <Card
-          className={`mb-3 cursor-move hover:shadow-md transition-shadow ${getStatusColor(
-            task.status
-          )}`}
-        >
-          <CardContent className="p-4">
-            <div className="flex items-start justify-between gap-2 mb-2">
-              <div className="flex-1">
-                <h3 className="font-semibold text-gray-900 mb-1">{task.title}</h3>
-                <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-                  {task.description}
-                </p>
-              </div>
-              <div className="flex items-center gap-1">
-                <button
-                  className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-100 rounded"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setEditingTask({ ...task });
-                  }}
-                >
-                  <Edit2 className="h-3.5 w-3.5 text-gray-500" />
-                </button>
-                <button
-                  className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-50 rounded"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDeleteTask(task.id);
-                  }}
-                >
-                  <Trash2 className="h-3.5 w-3.5 text-red-500" />
-                </button>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 mb-3">
-              <CalendarIcon className="h-3.5 w-3.5 text-gray-400" />
-              <span className="text-xs text-gray-500">
-                Due Date {formatDate(task.dueDate)}
-              </span>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <Badge
-                className={`${PRIORITY_COLORS[task.priority]} border font-medium`}
-              >
-                {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
-              </Badge>
-              <div
-                {...attributes}
-                {...listeners}
-                className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600"
-              >
-                <GripVertical className="h-4 w-4" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </motion.div>
-    );
-  };
-
-  // Composant KanbanColumn avec zone de drop
-  const KanbanColumn = ({ status, tasks: columnTasks }) => {
-    const sortableIds = columnTasks.map((t) => t.id);
-    const { setNodeRef, isOver } = useDroppable({
-      id: `droppable-${status}`,
-    });
-
-    return (
-      <div
-        ref={setNodeRef}
-        className={`flex-1 min-w-[280px] flex flex-col ${
-          isOver ? 'bg-blue-50 rounded-lg p-2' : ''
-        }`}
-      >
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <h2 className="font-semibold text-gray-900">{getStatusLabel(status)}</h2>
-            <Badge
-              variant="secondary"
-              className={`${
-                status === STATUS_TYPES.IN_PROGRESS
-                  ? 'bg-orange-100 text-orange-700'
-                  : status === STATUS_TYPES.OVERDUE
-                  ? 'bg-red-100 text-red-700'
-                  : status === STATUS_TYPES.DONE
-                  ? 'bg-green-100 text-green-700'
-                  : 'bg-gray-100 text-gray-700'
-              }`}
-            >
-              {columnTasks.length}
-            </Badge>
-          </div>
-          {getStatusIcon(status)}
-        </div>
-
-        <SortableContext
-          items={sortableIds}
-          strategy={verticalListSortingStrategy}
-        >
-          <ScrollArea className="flex-1 pr-2 min-h-[200px]">
-            <div className="space-y-0">
-              {columnTasks.map((task) => (
-                <TaskCard key={task.id} task={task} />
-              ))}
-              {columnTasks.length === 0 && (
-                <div className="text-center py-8 text-gray-400 text-sm">
-                  No tasks
-                </div>
-              )}
-            </div>
-          </ScrollArea>
-        </SortableContext>
-
-        <Button
-          variant="ghost"
-          className="w-full mt-3 text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-          onClick={() => {
-            setNewTask({ ...newTask, status });
-            setIsNewTaskOpen(true);
-          }}
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          New task
-        </Button>
-      </div>
-    );
-  };
-
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 overflow-x-hidden">
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-8 py-6">
         <div className="flex items-center justify-between mb-4">
@@ -501,49 +250,10 @@ const StudentTasks = () => {
       {/* Content */}
       <div className="p-8">
         {viewMode === 'board' && (
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
-          >
-            <div className="flex gap-6 overflow-x-auto pb-4">
-              <KanbanColumn status={STATUS_TYPES.TODO} tasks={tasksByStatus[STATUS_TYPES.TODO]} />
-              <KanbanColumn
-                status={STATUS_TYPES.IN_PROGRESS}
-                tasks={tasksByStatus[STATUS_TYPES.IN_PROGRESS]}
-              />
-              <KanbanColumn
-                status={STATUS_TYPES.OVERDUE}
-                tasks={tasksByStatus[STATUS_TYPES.OVERDUE]}
-              />
-              <KanbanColumn status={STATUS_TYPES.DONE} tasks={tasksByStatus[STATUS_TYPES.DONE]} />
-            </div>
-
-            <DragOverlay>
-              {activeId ? (() => {
-                const draggingTask = tasks.find((t) => t.id === activeId);
-                if (!draggingTask) return null;
-                return (
-                  <Card className="w-64 opacity-95 rotate-2 shadow-2xl border-2 border-blue-400">
-                    <CardContent className="p-4">
-                      <h3 className="font-semibold text-gray-900 mb-1">
-                        {draggingTask.title}
-                      </h3>
-                      <p className="text-sm text-gray-600 mb-2 line-clamp-2">
-                        {draggingTask.description}
-                      </p>
-                      <Badge
-                        className={`${PRIORITY_COLORS[draggingTask.priority]} border font-medium`}
-                      >
-                        {draggingTask.priority.charAt(0).toUpperCase() + draggingTask.priority.slice(1)}
-                      </Badge>
-                    </CardContent>
-                  </Card>
-                );
-              })() : null}
-            </DragOverlay>
-          </DndContext>
+          <div className="text-center py-12 text-gray-500">
+            <LayoutGrid className="h-16 w-16 mx-auto mb-4 text-gray-400" />
+            <p>Board view coming soon...</p>
+          </div>
         )}
 
         {viewMode === 'list' && (
