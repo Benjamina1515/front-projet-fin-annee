@@ -15,6 +15,7 @@ import {
   DialogTitle,
 } from '../../components/ui/dialog';
 import { Plus, Users, BookOpen, X, Loader2, RefreshCw, Edit, Trash2 } from 'lucide-react';
+import { Skeleton } from '../../components/ui/skeleton';
 import ProjectSlideOver from '../../components/professor/ProjectSlideOver';
 import SujetsSlideOver from '../../components/professor/SujetsSlideOver';
 import ProjectDetailsSlideOver from '../../components/professor/ProjectDetailsSlideOver';
@@ -56,23 +57,23 @@ const MesProjets = () => {
 
   const handleUpdateProject = async (formData) => {
     if (!editingProjet) return;
-    
+
     // Validation côté client
     if (formData.niveaux.length === 0) {
       toast.error('Veuillez sélectionner un niveau');
       return;
     }
-    
+
     if (!formData.date_debut || !formData.date_fin) {
       toast.error('Veuillez sélectionner les dates de début et de fin');
       return;
     }
-    
+
     if (new Date(formData.date_fin) < new Date(formData.date_debut)) {
       toast.error('La date de fin doit être postérieure à la date de début');
       return;
     }
-    
+
     try {
       setSubmitting(true);
       const updatedProjet = await projectService.updateProject(editingProjet.id, formData);
@@ -80,7 +81,7 @@ const MesProjets = () => {
       setOpenEditSlideOver(false);
       setEditingProjet(null);
       await loadProjets();
-      
+
       // Mettre à jour le projet sélectionné si le slideOver de détails est ouvert
       if (selectedProjet && selectedProjet.id === editingProjet.id && openDetailsSlideOver) {
         if (updatedProjet) {
@@ -116,17 +117,17 @@ const MesProjets = () => {
       toast.error('Veuillez sélectionner un niveau');
       return;
     }
-    
+
     if (!formData.date_debut || !formData.date_fin) {
       toast.error('Veuillez sélectionner les dates de début et de fin');
       return;
     }
-    
+
     if (new Date(formData.date_fin) < new Date(formData.date_debut)) {
       toast.error('La date de fin doit être postérieure à la date de début');
       return;
     }
-    
+
     try {
       setSubmitting(true);
       const projet = await projectService.createProject(formData);
@@ -161,7 +162,7 @@ const MesProjets = () => {
       toast.success(`${validSujets.length} sujet(s) ajouté(s) avec succès !`);
       setOpenSujetsSlideOver(false);
       await loadProjets();
-      
+
       // Ouvrir le slideOver de détails pour permettre à l'utilisateur de répartir manuellement
       if (selectedProjet) {
         const updatedProjet = await projectService.getProjectById(selectedProjet.id);
@@ -185,7 +186,7 @@ const MesProjets = () => {
       const projet = await projectService.repartirEtudiants(projetId);
       toast.success('Répartition effectuée avec succès !');
       await loadProjets();
-      
+
       // Mettre à jour le projet sélectionné si le slideOver est déjà ouvert
       if (selectedProjet && selectedProjet.id === projetId && openDetailsSlideOver) {
         setSelectedProjet(projet);
@@ -197,7 +198,7 @@ const MesProjets = () => {
         // Mettre à jour le projet sélectionné
         setSelectedProjet(projet);
       }
-      
+
       return projet;
     } catch (error) {
       console.error('Erreur lors de la répartition:', error);
@@ -290,10 +291,56 @@ const MesProjets = () => {
     }
   };
 
+  // Composant Skeleton pour le chargement
+  const ProjectCardSkeleton = () => (
+    <Card className="hover:shadow-lg transition-shadow">
+      <CardHeader>
+        <Skeleton className="h-6 w-3/4 mb-2" />
+        <Skeleton className="h-4 w-full" />
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <Skeleton className="h-4 w-24" />
+            <Skeleton className="h-4 w-12" />
+          </div>
+          <div className="flex items-center justify-between">
+            <Skeleton className="h-4 w-20" />
+            <Skeleton className="h-4 w-12" />
+          </div>
+          <div className="flex items-center justify-between">
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-4 w-12" />
+          </div>
+          <div className="flex items-center justify-between">
+            <Skeleton className="h-4 w-16" />
+            <Skeleton className="h-4 w-20" />
+          </div>
+          <div className="pt-3 border-t space-y-2">
+            <Skeleton className="h-9 w-full" />
+            <Skeleton className="h-9 w-full" />
+            <Skeleton className="h-9 w-full" />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <Skeleton className="h-9 w-48 mb-2" />
+            <Skeleton className="h-5 w-96" />
+          </div>
+          <Skeleton className="h-10 w-40" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[...Array(6)].map((_, i) => (
+            <ProjectCardSkeleton key={i} />
+          ))}
+        </div>
       </div>
     );
   }
@@ -526,8 +573,8 @@ const MesProjets = () => {
       />
 
       {/* Modal de confirmation de suppression */}
-      <Dialog 
-        open={deleteDialogOpen} 
+      <Dialog
+        open={deleteDialogOpen}
         onOpenChange={(open) => {
           setDeleteDialogOpen(open);
           if (!open) {
