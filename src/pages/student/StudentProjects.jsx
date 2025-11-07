@@ -66,6 +66,16 @@ const StudentProjects = () => {
     setDetailsModalOpen(true);
   };
 
+  // Vérifier si la deadline est dépassée
+  const isDeadlinePassed = (dateFin) => {
+    if (!dateFin) return false;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const deadline = new Date(dateFin);
+    deadline.setHours(0, 0, 0, 0);
+    return deadline < today;
+  };
+
   // Regrouper les projets par professeur
   const projetsParProf = useMemo(() => {
     const grouped = {};
@@ -514,6 +524,31 @@ const StudentProjects = () => {
 
                           {members.length === 0 && (
                             <p className="text-xs text-gray-400 italic">Aucun membre dans ce groupe</p>
+                          )}
+
+                          {/* Deadline du projet */}
+                          {projet.date_fin && (
+                            <div className="flex items-center gap-2 pt-2 border-t border-gray-200">
+                              <Calendar 
+                                className={`h-3.5 w-3.5 flex-shrink-0 ${
+                                  isDeadlinePassed(projet.date_fin) 
+                                    ? 'text-red-500' 
+                                    : 'text-green-500'
+                                }`} 
+                              />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs text-gray-500 font-medium">Deadline:</p>
+                                <p 
+                                  className={`text-xs font-semibold ${
+                                    isDeadlinePassed(projet.date_fin) 
+                                      ? 'text-red-600' 
+                                      : 'text-green-600'
+                                  }`}
+                                >
+                                  {formatDate(projet.date_fin)}
+                                </p>
+                              </div>
+                            </div>
                           )}
                         </div>
                       </CardContent>
