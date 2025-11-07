@@ -75,11 +75,22 @@ const MesProjets = () => {
     
     try {
       setSubmitting(true);
-      await projectService.updateProject(editingProjet.id, formData);
+      const updatedProjet = await projectService.updateProject(editingProjet.id, formData);
       toast.success('Projet mis à jour avec succès !');
       setOpenEditSlideOver(false);
       setEditingProjet(null);
       await loadProjets();
+      
+      // Mettre à jour le projet sélectionné si le slideOver de détails est ouvert
+      if (selectedProjet && selectedProjet.id === editingProjet.id && openDetailsSlideOver) {
+        if (updatedProjet) {
+          setSelectedProjet(updatedProjet);
+        } else {
+          // Si le backend ne retourne pas le projet complet, le recharger
+          const reloadedProjet = await projectService.getProjectById(editingProjet.id);
+          setSelectedProjet(reloadedProjet);
+        }
+      }
     } catch (error) {
       console.error('Erreur lors de la mise à jour du projet:', error);
       toast.error(error.response?.data?.message || 'Erreur lors de la mise à jour du projet');
