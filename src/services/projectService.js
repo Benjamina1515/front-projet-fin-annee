@@ -54,5 +54,11 @@ export const projectService = {
     const response = await api.post(`/projets/${projetId}/repartition`);
     return response.data?.projet;
   },
+
+  // Réassigner les sujets aux groupes existants (sans recréer les groupes)
+  reassignerSujetsAuxGroupes: async (projetId) => {
+    const response = await api.post(`/projets/${projetId}/reassigner-sujets`);
+    return response.data?.projet;
+  },
 };
 

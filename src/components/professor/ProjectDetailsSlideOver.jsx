@@ -40,6 +40,7 @@ export default function ProjectDetailsSlideOver({
   const [sujetsModified, setSujetsModified] = useState(false);
   const [deleteSujetDialogOpen, setDeleteSujetDialogOpen] = useState(false);
   const [sujetToDelete, setSujetToDelete] = useState(null);
+  const [reassigningSujets, setReassigningSujets] = useState(false);
 
   useEffect(() => {
     const onKey = (e) => {
@@ -198,12 +199,13 @@ export default function ProjectDetailsSlideOver({
     try {
       setDeletingSujetId(sujetToDelete.id);
       await projectService.deleteSujet(sujetToDelete.id);
-      toast.success('Sujet supprimé avec succès !');
-      setSujetsModified(true);
+      // La réassignation automatique se fait dans le backend
+      toast.success('Sujet supprimé avec succès ! Les groupes ont été automatiquement réassignés.');
       setDeleteSujetDialogOpen(false);
       setSujetToDelete(null);
+      // Ne pas mettre sujetsModified à true car la réassignation est automatique
       
-      // Recharger les données du projet
+      // Recharger les données du projet pour voir la réassignation automatique
       if (projet) {
         const updatedProjet = await projectService.getProjectById(projet.id);
         if (onEditSujet) {
@@ -218,29 +220,25 @@ export default function ProjectDetailsSlideOver({
     }
   };
 
-  // Fonction pour répartir les étudiants après modification des sujets
-  const handleRepartirAfterModification = async () => {
+  // Fonction pour réassigner les sujets aux groupes existants (sans recréer les groupes)
+  const handleReassignerSujets = async () => {
     if (!projet) return;
 
     try {
-      if (onRepartir) {
-        const updatedProjet = await onRepartir(projet.id);
-        setSujetsModified(false);
-        
-        // Recharger les données du projet après répartition
-        if (updatedProjet && onEditSujet) {
-          onEditSujet(updatedProjet);
-        } else if (projet) {
-          // Si onRepartir ne retourne pas le projet, le recharger
-          const reloadedProjet = await projectService.getProjectById(projet.id);
-          if (onEditSujet) {
-            onEditSujet(reloadedProjet);
-          }
-        }
+      setReassigningSujets(true);
+      const updatedProjet = await projectService.reassignerSujetsAuxGroupes(projet.id);
+      toast.success('Sujets réassignés avec succès aux groupes existants !');
+      setSujetsModified(false);
+      
+      // Recharger les données du projet après réassignation
+      if (onEditSujet) {
+        onEditSujet(updatedProjet);
       }
     } catch (error) {
-      console.error('Erreur lors de la répartition:', error);
-      toast.error(error.response?.data?.message || 'Erreur lors de la répartition');
+      console.error('Erreur lors de la réassignation des sujets:', error);
+      toast.error(error.response?.data?.message || 'Erreur lors de la réassignation des sujets');
+    } finally {
+      setReassigningSujets(false);
     }
   };
 
@@ -736,29 +734,49 @@ export default function ProjectDetailsSlideOver({
                 <BookOpen className="h-5 w-5" />
                 Sujets ({projet?.sujets?.length || 0})
               </h3>
+              {sujetsModified && projet?.sujets && projet.sujets.length > 0 && projet?.groupes && projet.groupes.length > 0 && (
+                <Button
+                  onClick={handleReassignerSujets}
+                  disabled={reassigningSujets}
+                  className="gap-2 bg-blue-600 hover:bg-blue-700 text-white"
+                  size="sm"
+                >
+                  {reassigningSujets ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Réassignation...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="h-4 w-4" />
+                      Réassigner les sujets aux groupes
+                    </>
+                  )}
+                </Button>
+              )}
             </div>
 
             {/* Liste des sujets existants */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {/* Liste des sujets existants */}
               {projet?.sujets && projet.sujets.map((sujet) => (
-                  <Card key={sujet.id} className={`p-3 hover:shadow-md transition-shadow ${editingSujetId === sujet.id ? '' : 'h-[140px] flex flex-col'}`}>
+                  <Card key={sujet.id} className={`p-2.5 hover:shadow-md transition-shadow ${editingSujetId === sujet.id ? '' : 'h-[110px] flex flex-col'}`}>
                     {editingSujetId === sujet.id ? (
                       // Mode édition - hauteur libre
-                      <div className="space-y-3">
-                        <div className="space-y-2">
-                          <Label htmlFor={`edit_titre_${sujet.id}`} className="text-sm">Titre du sujet *</Label>
+                      <div className="space-y-2.5">
+                        <div className="space-y-1.5">
+                          <Label htmlFor={`edit_titre_${sujet.id}`} className="text-xs">Titre du sujet *</Label>
                           <Input
                             id={`edit_titre_${sujet.id}`}
                             placeholder="Titre du sujet"
                             value={editingSujetData.titre_sujet}
                             onChange={(e) => setEditingSujetData({ ...editingSujetData, titre_sujet: e.target.value })}
                             disabled={updatingSujet}
-                            className="h-9 text-sm"
+                            className="h-8 text-sm"
                           />
                         </div>
-                        <div className="space-y-2">
-                          <Label htmlFor={`edit_description_${sujet.id}`} className="text-sm">Description</Label>
+                        <div className="space-y-1.5">
+                          <Label htmlFor={`edit_description_${sujet.id}`} className="text-xs">Description</Label>
                           <Textarea
                             id={`edit_description_${sujet.id}`}
                             placeholder="Description du sujet (optionnel)"
@@ -769,13 +787,13 @@ export default function ProjectDetailsSlideOver({
                             className="text-sm"
                           />
                         </div>
-                        <div className="flex gap-2 justify-end">
+                        <div className="flex gap-1.5 justify-end">
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={handleCancelEditSujet}
                             disabled={updatingSujet}
-                            className="h-8 text-xs"
+                            className="h-7 text-xs px-2"
                           >
                             <X className="h-3 w-3 mr-1" />
                             Annuler
@@ -784,7 +802,7 @@ export default function ProjectDetailsSlideOver({
                             size="sm"
                             onClick={() => handleSaveSujet(sujet.id)}
                             disabled={updatingSujet || !editingSujetData.titre_sujet?.trim()}
-                            className="h-8 text-xs"
+                            className="h-7 text-xs px-2"
                           >
                             {updatingSujet ? (
                               <>
@@ -801,20 +819,20 @@ export default function ProjectDetailsSlideOver({
                         </div>
                       </div>
                     ) : (
-                      // Mode affichage - hauteur fixe
+                      // Mode affichage - hauteur fixe réduite
                       <div className="flex flex-col h-full justify-between">
-                        <div className="flex-1 space-y-1.5 min-h-0">
+                        <div className="flex-1 space-y-1 min-h-0">
                           <h4 className="font-semibold text-sm leading-tight line-clamp-2">{sujet.titre_sujet}</h4>
                           {sujet.description && (
-                            <p className="text-xs text-gray-600 line-clamp-2 leading-relaxed">{sujet.description}</p>
+                            <p className="text-xs text-gray-600 line-clamp-2 leading-snug">{sujet.description}</p>
                           )}
                         </div>
-                        <div className="flex gap-1 justify-end mt-2 pt-2 border-t border-gray-100">
+                        <div className="flex gap-1 justify-end mt-1.5 pt-1.5 border-t border-gray-100">
                           {onEditSujet && (
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-7 w-7 flex-shrink-0"
+                              className="h-6 w-6 flex-shrink-0"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleStartEditSujet(sujet);
@@ -826,7 +844,7 @@ export default function ProjectDetailsSlideOver({
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-7 w-7 flex-shrink-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                            className="h-6 w-6 flex-shrink-0 text-red-600 hover:text-red-700 hover:bg-red-50"
                             onClick={(e) => {
                               e.stopPropagation();
                               handleDeleteSujetClick(sujet);
@@ -847,24 +865,24 @@ export default function ProjectDetailsSlideOver({
 
               {/* Bouton d'ajout de sujet à la fin de la grille */}
               {showAddSujetForm ? (
-                <Card className="p-3 border-2 border-blue-300 bg-blue-50/30">
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between mb-1">
-                      <Label className="text-sm font-semibold text-slate-900">Nouveau sujet</Label>
+                <Card className="p-2.5 border-2 border-blue-300 bg-blue-50/30">
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between mb-0.5">
+                      <Label className="text-xs font-semibold text-slate-900">Nouveau sujet</Label>
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-6 w-6"
+                        className="h-5 w-5"
                         onClick={() => {
                           setShowAddSujetForm(false);
                           setNewSujetData({ titre_sujet: '', description: '' });
                         }}
                         disabled={addingSujet}
                       >
-                        <X className="h-3.5 w-3.5" />
+                        <X className="h-3 w-3" />
                       </Button>
                     </div>
-                    <div className="space-y-1.5">
+                    <div className="space-y-1">
                       <Label htmlFor="new_titre_sujet" className="text-xs">Titre *</Label>
                       <Input
                         id="new_titre_sujet"
@@ -872,10 +890,10 @@ export default function ProjectDetailsSlideOver({
                         value={newSujetData.titre_sujet}
                         onChange={(e) => setNewSujetData({ ...newSujetData, titre_sujet: e.target.value })}
                         disabled={addingSujet}
-                        className="h-8 text-sm"
+                        className="h-7 text-sm"
                       />
                     </div>
-                    <div className="space-y-1.5">
+                    <div className="space-y-1">
                       <Label htmlFor="new_description_sujet" className="text-xs">Description</Label>
                       <Textarea
                         id="new_description_sujet"
@@ -887,7 +905,7 @@ export default function ProjectDetailsSlideOver({
                         className="text-sm"
                       />
                     </div>
-                    <div className="flex gap-1.5 justify-end pt-1">
+                    <div className="flex gap-1 justify-end pt-0.5">
                       <Button
                         variant="outline"
                         size="sm"
@@ -896,7 +914,7 @@ export default function ProjectDetailsSlideOver({
                           setNewSujetData({ titre_sujet: '', description: '' });
                         }}
                         disabled={addingSujet}
-                        className="h-7 text-xs px-2"
+                        className="h-6 text-xs px-2"
                       >
                         Annuler
                       </Button>
@@ -904,7 +922,7 @@ export default function ProjectDetailsSlideOver({
                         size="sm"
                         onClick={handleAddSujet}
                         disabled={addingSujet || !newSujetData.titre_sujet?.trim()}
-                        className="h-7 text-xs px-2"
+                        className="h-6 text-xs px-2"
                       >
                         {addingSujet ? (
                           <>
@@ -923,12 +941,12 @@ export default function ProjectDetailsSlideOver({
                 </Card>
               ) : (
                 <Card 
-                  className="h-[140px] p-3 border-2 border-dashed border-blue-300 bg-blue-50/30 hover:border-blue-400 hover:bg-blue-50/50 transition-all cursor-pointer flex items-center justify-center"
+                  className="h-[110px] p-2.5 border-2 border-dashed border-blue-300 bg-blue-50/30 hover:border-blue-400 hover:bg-blue-50/50 transition-all cursor-pointer flex items-center justify-center"
                   onClick={() => setShowAddSujetForm(true)}
                 >
-                  <div className="flex flex-col items-center justify-center gap-1.5 text-blue-600">
-                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 border-2 border-blue-300">
-                      <Plus className="h-4 w-4" />
+                  <div className="flex flex-col items-center justify-center gap-1 text-blue-600">
+                    <div className="flex items-center justify-center w-7 h-7 rounded-full bg-blue-100 border-2 border-blue-300">
+                      <Plus className="h-3.5 w-3.5" />
                     </div>
                     <span className="font-medium text-xs">Ajouter</span>
                   </div>
@@ -946,22 +964,22 @@ export default function ProjectDetailsSlideOver({
                   Groupes ({projet.groupes.length})
                 </h3>
                 <div className="flex gap-2">
-                  {sujetsModified && projet?.sujets && projet.sujets.length > 0 && (
+                  {projet?.sujets && projet.sujets.length > 0 && (
                     <Button
-                      onClick={handleRepartirAfterModification}
-                      disabled={repartirLoading}
+                      onClick={handleReassignerSujets}
+                      disabled={reassigningSujets}
                       className="gap-2 bg-blue-600 hover:bg-blue-700 text-white"
                       size="sm"
                     >
-                      {repartirLoading ? (
+                      {reassigningSujets ? (
                         <>
                           <Loader2 className="h-4 w-4 animate-spin" />
-                          Répartition...
+                          Réassignation...
                         </>
                       ) : (
                         <>
                           <RefreshCw className="h-4 w-4" />
-                          Mettre à jour la répartition
+                          Réassigner les sujets
                         </>
                       )}
                     </Button>
