@@ -6,7 +6,14 @@ import { Badge } from '../../components/ui/badge';
 import { Avatar, AvatarFallback } from '../../components/ui/avatar';
 import { ScrollArea } from '../../components/ui/scroll-area';
 import { Skeleton } from '../../components/ui/skeleton';
-import { BookOpen, Circle, GraduationCap, ChevronDown, ChevronRight, ChevronLeft } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui/dialog';
+import { BookOpen, Circle, GraduationCap, ChevronDown, ChevronRight, ChevronLeft, Info, Calendar, Users, FileText, User } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -17,6 +24,8 @@ const StudentProjects = () => {
   const [selectedProfId, setSelectedProfId] = useState(null);
   const [expandedProfs, setExpandedProfs] = useState(new Set());
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [selectedProjet, setSelectedProjet] = useState(null);
+  const [detailsModalOpen, setDetailsModalOpen] = useState(false);
 
   useEffect(() => {
     fetchProjets();
@@ -41,6 +50,20 @@ const StudentProjects = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return '-';
+    return new Date(dateString).toLocaleDateString('fr-FR', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric'
+    });
+  };
+
+  const handleOpenDetails = (projet) => {
+    setSelectedProjet(projet);
+    setDetailsModalOpen(true);
   };
 
   // Regrouper les projets par professeur
@@ -85,9 +108,9 @@ const StudentProjects = () => {
     });
   };
 
-  // Obtenir le nombre total de groupes pour chaque projet
-  const getNombreGroupes = (projet) => {
-    return projet.groupe ? 1 : 0;
+  // Obtenir le numéro de groupe de l'étudiant
+  const getNumeroGroupe = (projet) => {
+    return projet.groupe?.numero_groupe || null;
   };
 
   // Obtenir tous les membres du groupe (incluant l'étudiant actuel si disponible)
@@ -410,7 +433,7 @@ const StudentProjects = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {projetsFiltres.map((projet, index) => {
                 const members = getGroupMembers(projet);
-                const nombreGroupes = getNombreGroupes(projet);
+                const numeroGroupe = getNumeroGroupe(projet);
 
                 return (
                   <motion.div
@@ -421,10 +444,22 @@ const StudentProjects = () => {
                     transition={{ duration: 0.3, delay: index * 0.05 }}
                     whileHover={{ y: -4, transition: { duration: 0.2 } }}
                   >
-                    <Card className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-lg transition-all h-full cursor-pointer">
+                    <Card className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-lg transition-all h-full relative">
+                      {/* Bouton détails - positionné sur la bordure en haut à droite */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenDetails(projet);
+                        }}
+                        className="absolute -top-3 -right-3 z-10 bg-white border-2 border-blue-500 rounded-full p-2 shadow-lg hover:bg-blue-50 hover:border-blue-600 transition-all group"
+                        title="Voir les détails du projet"
+                      >
+                        <Info className="h-4 w-4 text-blue-600 group-hover:scale-110 transition-transform" />
+                      </button>
+
                       <CardHeader className="pb-2">
                         {/* Titre du projet */}
-                        <CardTitle className="text-lg font-semibold text-gray-900 mb-2 leading-tight line-clamp-2">
+                        <CardTitle className="text-lg font-semibold text-gray-900 mb-2 leading-tight line-clamp-2 pr-8">
                           {projet.titre}
                         </CardTitle>
 
@@ -438,12 +473,14 @@ const StudentProjects = () => {
 
                       <CardContent className="pt-0 pb-3">
                         <div className="space-y-3">
-                          {/* Badge nombre de groupes */}
-                          <div>
-                            <Badge variant="secondary" className="bg-gray-100 text-gray-700 hover:bg-gray-200 text-xs px-2.5 py-0.5">
-                              {nombreGroupes} Groupe{nombreGroupes > 1 ? 's' : ''}
-                            </Badge>
-                          </div>
+                          {/* Badge numéro de groupe */}
+                          {numeroGroupe && (
+                            <div>
+                              <Badge variant="secondary" className="bg-gray-100 text-gray-700 hover:bg-gray-200 text-xs px-2.5 py-0.5">
+                                Groupe {numeroGroupe}
+                              </Badge>
+                            </div>
+                          )}
 
                           {/* Membres du groupe - sur une seule ligne */}
                           {members.length > 0 && (
@@ -488,6 +525,139 @@ const StudentProjects = () => {
           )}
         </div>
       </main>
+
+      {/* Modal Détails du Projet */}
+      <Dialog open={detailsModalOpen} onOpenChange={setDetailsModalOpen}>
+        <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto z-[60]">
+          {selectedProjet && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                  <BookOpen className="h-6 w-6 text-blue-600" />
+                  {selectedProjet.titre}
+                </DialogTitle>
+                <DialogDescription className="text-base">
+                  {selectedProjet.prof && selectedProjet.prof.nom && (
+                    <span className="text-gray-600">
+                      Professeur: <strong>{selectedProjet.prof.nom}</strong>
+                    </span>
+                  )}
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-6 py-4">
+                {/* Description du projet */}
+                {selectedProjet.description && (
+                  <div className="space-y-2">
+                    <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-gray-600" />
+                      Description du projet
+                    </h3>
+                    <p className="text-sm text-gray-700 leading-relaxed bg-gray-50 p-4 rounded-lg border border-gray-200">
+                      {selectedProjet.description}
+                    </p>
+                  </div>
+                )}
+
+                {/* Sujet assigné */}
+                {selectedProjet.groupe?.sujet && (
+                  <div className="space-y-2">
+                    <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-purple-600" />
+                      Sujet assigné
+                    </h3>
+                    <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
+                      <p className="font-semibold text-gray-900 mb-2">
+                        {selectedProjet.groupe.sujet.titre_sujet}
+                      </p>
+                      {selectedProjet.groupe.sujet.description && (
+                        <p className="text-sm text-gray-700 leading-relaxed">
+                          {selectedProjet.groupe.sujet.description}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Informations du groupe */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Numéro de groupe */}
+                  {selectedProjet.groupe?.numero_groupe && (
+                    <div className="space-y-2">
+                      <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                        <Users className="h-4 w-4 text-gray-600" />
+                        Groupe
+                      </h3>
+                      <Badge variant="secondary" className="bg-gray-100 text-gray-700 text-sm px-3 py-1.5">
+                        Groupe {selectedProjet.groupe.numero_groupe}
+                      </Badge>
+                    </div>
+                  )}
+
+                  {/* Période du projet */}
+                  {(selectedProjet.date_debut || selectedProjet.date_fin) && (
+                    <div className="space-y-2">
+                      <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                        <Calendar className="h-4 w-4 text-gray-600" />
+                        Période du projet
+                      </h3>
+                      <div className="space-y-1 text-sm text-gray-700">
+                        {selectedProjet.date_debut && (
+                          <p>
+                            <span className="font-medium">Début:</span> {formatDate(selectedProjet.date_debut)}
+                          </p>
+                        )}
+                        {selectedProjet.date_fin && (
+                          <p>
+                            <span className="font-medium">Deadline:</span> {formatDate(selectedProjet.date_fin)}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Membres du groupe */}
+                {(() => {
+                  const members = getGroupMembers(selectedProjet);
+                  return members.length > 0 && (
+                    <div className="space-y-3">
+                      <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                        <User className="h-4 w-4 text-gray-600" />
+                        Membres du groupe ({members.length})
+                      </h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {members.map((member) => (
+                          <div
+                            key={member.id}
+                            className="flex items-center gap-3 p-3 rounded-lg bg-green-50 border border-green-200 hover:bg-green-100 transition-colors"
+                          >
+                            <Avatar className="h-10 w-10 border-2 border-white shadow-sm">
+                              <AvatarFallback className="bg-gradient-to-br from-green-400 to-green-600 text-white text-sm font-semibold">
+                                {member.nom ? member.nom.charAt(0).toUpperCase() : '?'}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-sm text-gray-900 truncate">
+                                {member.nom || '-'}
+                              </p>
+                              {member.matricule && (
+                                <p className="text-xs text-gray-600">
+                                  Mat: {member.matricule}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
