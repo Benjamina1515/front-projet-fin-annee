@@ -66,5 +66,11 @@ export const projectService = {
     const response = await api.post(`/projets/${projetId}/reassigner-sujets`);
     return response.data?.projet;
   },
+
+  // Récupérer les projets de l'étudiant connecté
+  getStudentProjects: async () => {
+    const response = await api.get('/student/projets');
+    return response.data?.projets || [];
+  },
 };
 

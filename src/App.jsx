@@ -23,6 +23,7 @@ import MesProjets from './pages/professor/MesProjets';
 
 // Pages Étudiant
 import StudentDashboard from './pages/student/StudentDashboard';
+import StudentProjects from './pages/student/StudentProjects';
 
 function App() {
   return (
@@ -75,7 +76,7 @@ function App() {
             }
           >
             <Route index element={<StudentDashboard />} />
-            <Route path="projects" element={<div>Mes Projets (À implémenter)</div>} />
+            <Route path="projects" element={<StudentProjects />} />
             <Route path="tasks" element={<div>Mes Tâches (À implémenter)</div>} />
             <Route path="reports" element={<div>Mes Tâches (À implémenter)</div>} />
           </Route>
