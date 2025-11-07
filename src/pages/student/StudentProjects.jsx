@@ -117,16 +117,22 @@ const StudentProjects = () => {
   // Skeleton pour les cartes
   const ProjectCardSkeleton = () => (
     <Card className="bg-white border border-gray-200 rounded-lg shadow-sm">
-      <CardHeader className="pb-3">
-        <Skeleton className="h-4 w-24 mb-2" />
-        <Skeleton className="h-6 w-3/4" />
-        <Skeleton className="h-4 w-full mt-2" />
+      <CardHeader className="pb-2">
+        <Skeleton className="h-5 w-3/4 mb-2" />
+        <Skeleton className="h-4 w-full mb-3" />
       </CardHeader>
-      <CardContent>
-        <div className="flex items-center gap-2 mb-4">
-          <Skeleton className="h-6 w-20 rounded-full" />
+      <CardContent className="pt-0 pb-3">
+        <div className="space-y-3">
+          <Skeleton className="h-5 w-20 rounded-full" />
+          <div className="flex items-center gap-1.5">
+            <Skeleton className="h-3 w-16" />
+            <div className="flex items-center gap-0">
+              <Skeleton className="h-8 w-8 rounded-full" />
+              <Skeleton className="h-8 w-8 rounded-full -ml-2" />
+              <Skeleton className="h-8 w-8 rounded-full -ml-2" />
+            </div>
+          </div>
         </div>
-        <Skeleton className="h-10 w-full" />
       </CardContent>
     </Card>
   );
@@ -181,7 +187,7 @@ const StudentProjects = () => {
           ) : (
             <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
               <Circle className="h-2 w-2 fill-current text-gray-900" />
-              Mes Projets
+              Projets par Professeur
             </h2>
           )}
         </div>
@@ -416,64 +422,63 @@ const StudentProjects = () => {
                     whileHover={{ y: -4, transition: { duration: 0.2 } }}
                   >
                     <Card className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-lg transition-all h-full cursor-pointer">
-                      <CardHeader className="pb-4">
-                        {/* Nom du professeur - discret au-dessus */}
-                        {projet.prof && projet.prof.nom && (
-                          <p className="text-xs text-gray-500 mb-3 font-medium">
-                            Prof: {projet.prof.nom}
-                          </p>
-                        )}
-
+                      <CardHeader className="pb-2">
                         {/* Titre du projet */}
-                        <CardTitle className="text-xl font-semibold text-gray-900 mb-2 leading-tight">
+                        <CardTitle className="text-lg font-semibold text-gray-900 mb-2 leading-tight line-clamp-2">
                           {projet.titre}
                         </CardTitle>
 
                         {/* Sujet du projet */}
                         {projet.groupe?.sujet?.titre_sujet && (
-                          <CardDescription className="text-sm text-gray-600">
-                            {projet.groupe.sujet.titre_sujet}
+                          <CardDescription className="text-sm text-gray-600 line-clamp-1 mb-3">
+                            Sujet: {projet.groupe.sujet.titre_sujet}
                           </CardDescription>
                         )}
                       </CardHeader>
 
-                      <CardContent className="pt-0">
-                        {/* Badge nombre de groupes */}
-                        <div className="mb-5">
-                          <Badge variant="secondary" className="bg-gray-100 text-gray-700 hover:bg-gray-200 text-xs px-3 py-1">
-                            {nombreGroupes} Groupe{nombreGroupes > 1 ? 's' : ''}
-                          </Badge>
-                        </div>
-
-                        {/* Membres du groupe */}
-                        {members.length > 0 && (
+                      <CardContent className="pt-0 pb-3">
+                        <div className="space-y-3">
+                          {/* Badge nombre de groupes */}
                           <div>
-                            <p className="text-xs text-gray-500 mb-3 font-medium">Membres du groupe :</p>
-                            <div className="flex items-center flex-wrap gap-0">
-                              {members.map((member, idx) => (
-                                <motion.div
-                                  key={member.id || idx}
-                                  whileHover={{ scale: 1.1, zIndex: 10 }}
-                                  transition={{ duration: 0.2 }}
-                                >
-                                  <Avatar
-                                    className="h-10 w-10 border-2 border-white shadow-md hover:shadow-lg transition-all cursor-pointer"
-                                    style={{ marginLeft: idx > 0 ? '-12px' : '0' }}
-                                    title={member.nom || 'Membre'}
-                                  >
-                                    <AvatarFallback className="bg-gradient-to-br from-blue-400 to-blue-600 text-white text-xs font-semibold">
-                                      {member.nom ? member.nom.charAt(0).toUpperCase() : '?'}
-                                    </AvatarFallback>
-                                  </Avatar>
-                                </motion.div>
-                              ))}
-                            </div>
+                            <Badge variant="secondary" className="bg-gray-100 text-gray-700 hover:bg-gray-200 text-xs px-2.5 py-0.5">
+                              {nombreGroupes} Groupe{nombreGroupes > 1 ? 's' : ''}
+                            </Badge>
                           </div>
-                        )}
 
-                        {members.length === 0 && (
-                          <p className="text-xs text-gray-400 italic">Aucun membre dans ce groupe</p>
-                        )}
+                          {/* Membres du groupe - sur une seule ligne */}
+                          {members.length > 0 && (
+                            <div className="flex items-center gap-1.5">
+                              <p className="text-xs text-gray-500 font-medium whitespace-nowrap">Membres :</p>
+                              <div className="flex items-center gap-0 flex-1 min-w-0 overflow-hidden">
+                                {members.map((member, idx) => (
+                                  <motion.div
+                                    key={member.id || idx}
+                                    whileHover={{ scale: 1.15, zIndex: 10 }}
+                                    transition={{ duration: 0.2 }}
+                                    className="flex-shrink-0"
+                                  >
+                                    <Avatar
+                                      className="h-8 w-8 border-2 border-white shadow-sm hover:shadow-md transition-all cursor-pointer"
+                                      style={{ marginLeft: idx > 0 ? '-8px' : '0' }}
+                                      title={member.nom || 'Membre'}
+                                    >
+                                      <AvatarFallback className="bg-gradient-to-br from-blue-400 to-blue-600 text-white text-[10px] font-semibold">
+                                        {member.nom ? member.nom.charAt(0).toUpperCase() : '?'}
+                                      </AvatarFallback>
+                                    </Avatar>
+                                  </motion.div>
+                                ))}
+                                {members.length > 5 && (
+                                  <span className="text-xs text-gray-500 ml-1">+{members.length - 5}</span>
+                                )}
+                              </div>
+                            </div>
+                          )}
+
+                          {members.length === 0 && (
+                            <p className="text-xs text-gray-400 italic">Aucun membre dans ce groupe</p>
+                          )}
+                        </div>
                       </CardContent>
                     </Card>
                   </motion.div>
