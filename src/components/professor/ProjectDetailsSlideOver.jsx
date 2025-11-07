@@ -5,11 +5,19 @@ import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
 import { Card } from '../ui/card';
 import { Separator } from '../ui/separator';
-import { X, BookOpen, Users, Edit, Loader2, RefreshCw, Download, FileText, Check } from 'lucide-react';
+import { X, BookOpen, Users, Edit, Loader2, RefreshCw, Download, FileText, Check, Plus, Trash2 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { projectService } from '../../services/projectService';
 import { toast } from 'react-toastify';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../ui/dialog';
 
 const SIDEBAR_WIDTH_PX = 256;
 
@@ -25,6 +33,12 @@ export default function ProjectDetailsSlideOver({
   const [editingSujetId, setEditingSujetId] = useState(null);
   const [editingSujetData, setEditingSujetData] = useState({ titre_sujet: '', description: '' });
   const [updatingSujet, setUpdatingSujet] = useState(false);
+  const [addingSujet, setAddingSujet] = useState(false);
+  const [newSujetData, setNewSujetData] = useState({ titre_sujet: '', description: '' });
+  const [deletingSujetId, setDeletingSujetId] = useState(null);
+  const [sujetsModified, setSujetsModified] = useState(false);
+  const [deleteSujetDialogOpen, setDeleteSujetDialogOpen] = useState(false);
+  const [sujetToDelete, setSujetToDelete] = useState(null);
 
   useEffect(() => {
     const onKey = (e) => {
@@ -33,6 +47,14 @@ export default function ProjectDetailsSlideOver({
     if (open) window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [open, onClose]);
+
+  // Réinitialiser l'état de modification quand le slideOver s'ouvre
+  useEffect(() => {
+    if (open) {
+      setSujetsModified(false);
+      setNewSujetData({ titre_sujet: '', description: '' });
+    }
+  }, [open]);
 
   // Transformer les données des groupes en lignes de tableau avec informations de fusion
   // IMPORTANT: Ce hook doit être appelé avant tout return conditionnel
@@ -123,6 +145,88 @@ export default function ProjectDetailsSlideOver({
       toast.error(error.response?.data?.message || 'Erreur lors de la mise à jour du sujet');
     } finally {
       setUpdatingSujet(false);
+    }
+  };
+
+  // Fonction pour ajouter un nouveau sujet
+  const handleAddSujet = async () => {
+    if (!newSujetData.titre_sujet || newSujetData.titre_sujet.trim() === '') {
+      toast.error('Le titre du sujet est requis');
+      return;
+    }
+
+    if (!projet) return;
+
+    try {
+      setAddingSujet(true);
+      await projectService.addSujet({
+        projet_id: projet.id,
+        titre_sujet: newSujetData.titre_sujet,
+        description: newSujetData.description || null,
+      });
+      toast.success('Sujet ajouté avec succès !');
+      setNewSujetData({ titre_sujet: '', description: '' });
+      setAddingSujet(false);
+      setSujetsModified(true);
+      
+      // Recharger les données du projet
+      const updatedProjet = await projectService.getProjectById(projet.id);
+      if (onEditSujet) {
+        onEditSujet(updatedProjet);
+      }
+    } catch (error) {
+      console.error('Erreur lors de l\'ajout du sujet:', error);
+      toast.error(error.response?.data?.message || 'Erreur lors de l\'ajout du sujet');
+    } finally {
+      setAddingSujet(false);
+    }
+  };
+
+  // Fonction pour ouvrir la modal de confirmation de suppression
+  const handleDeleteSujetClick = (sujet) => {
+    setSujetToDelete(sujet);
+    setDeleteSujetDialogOpen(true);
+  };
+
+  // Fonction pour confirmer la suppression d'un sujet
+  const handleConfirmDeleteSujet = async () => {
+    if (!sujetToDelete) return;
+
+    try {
+      setDeletingSujetId(sujetToDelete.id);
+      await projectService.deleteSujet(sujetToDelete.id);
+      toast.success('Sujet supprimé avec succès !');
+      setSujetsModified(true);
+      setDeleteSujetDialogOpen(false);
+      setSujetToDelete(null);
+      
+      // Recharger les données du projet
+      if (projet) {
+        const updatedProjet = await projectService.getProjectById(projet.id);
+        if (onEditSujet) {
+          onEditSujet(updatedProjet);
+        }
+      }
+    } catch (error) {
+      console.error('Erreur lors de la suppression du sujet:', error);
+      toast.error(error.response?.data?.message || 'Erreur lors de la suppression du sujet');
+    } finally {
+      setDeletingSujetId(null);
+    }
+  };
+
+  // Fonction pour répartir les étudiants après modification des sujets
+  const handleRepartirAfterModification = async () => {
+    if (!projet) return;
+
+    try {
+      if (onRepartir) {
+        await onRepartir(projet.id);
+        setSujetsModified(false);
+      }
+    } catch (error) {
+      console.error('Erreur lors de la répartition:', error);
+      toast.error(error.response?.data?.message || 'Erreur lors de la répartition');
     }
   };
 
@@ -612,12 +716,85 @@ export default function ProjectDetailsSlideOver({
           <Separator />
 
           {/* Liste des sujets */}
-          {projet?.sujets && projet.sujets.length > 0 && (
-            <section className="space-y-4">
+          <section className="space-y-4">
+            <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
                 <BookOpen className="h-5 w-5" />
-                Sujets ({projet.sujets.length})
+                Sujets ({projet?.sujets?.length || 0})
               </h3>
+              {sujetsModified && (
+                <Button
+                  onClick={handleRepartirAfterModification}
+                  disabled={repartirLoading}
+                  className="gap-2 bg-blue-600 hover:bg-blue-700"
+                >
+                  {repartirLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Répartition...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="h-4 w-4" />
+                      Répartir les étudiants
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
+
+            {/* Formulaire d'ajout de sujet */}
+            <Card className="p-4 border-2 border-dashed border-blue-300 bg-blue-50/30">
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <Plus className="h-5 w-5 text-blue-600" />
+                  <Label className="text-base font-semibold text-slate-900">Ajouter un nouveau sujet</Label>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="new_titre_sujet">Titre du sujet *</Label>
+                  <Input
+                    id="new_titre_sujet"
+                    placeholder="Ex: Application mobile de gestion"
+                    value={newSujetData.titre_sujet}
+                    onChange={(e) => setNewSujetData({ ...newSujetData, titre_sujet: e.target.value })}
+                    disabled={addingSujet}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="new_description_sujet">Description (optionnel)</Label>
+                  <Textarea
+                    id="new_description_sujet"
+                    placeholder="Description du sujet..."
+                    value={newSujetData.description}
+                    onChange={(e) => setNewSujetData({ ...newSujetData, description: e.target.value })}
+                    rows={3}
+                    disabled={addingSujet}
+                  />
+                </div>
+                <div className="flex justify-end">
+                  <Button
+                    onClick={handleAddSujet}
+                    disabled={addingSujet || !newSujetData.titre_sujet?.trim()}
+                    className="gap-2"
+                  >
+                    {addingSujet ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Ajout...
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="h-4 w-4" />
+                        Ajouter
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </Card>
+
+            {/* Liste des sujets existants */}
+            {projet?.sujets && projet.sujets.length > 0 && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {projet.sujets.map((sujet) => (
                   <Card key={sujet.id} className="p-4 hover:shadow-md transition-shadow">
@@ -676,33 +853,53 @@ export default function ProjectDetailsSlideOver({
                       </div>
                     ) : (
                       // Mode affichage
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1 space-y-2">
-                          <h4 className="font-semibold text-base">{sujet.titre_sujet}</h4>
-                          {sujet.description && (
-                            <p className="text-sm text-gray-600 line-clamp-3">{sujet.description}</p>
-                          )}
+                      <div className="space-y-3">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 space-y-2">
+                            <h4 className="font-semibold text-base">{sujet.titre_sujet}</h4>
+                            {sujet.description && (
+                              <p className="text-sm text-gray-600 line-clamp-3">{sujet.description}</p>
+                            )}
+                          </div>
                         </div>
-                        {onEditSujet && (
+                        <div className="flex gap-2 justify-end">
+                          {onEditSujet && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 flex-shrink-0"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleStartEditSujet(sujet);
+                              }}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          )}
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 flex-shrink-0"
+                            className="h-8 w-8 flex-shrink-0 text-red-600 hover:text-red-700 hover:bg-red-50"
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleStartEditSujet(sujet);
+                              handleDeleteSujetClick(sujet);
                             }}
+                            disabled={deletingSujetId === sujet.id}
                           >
-                            <Edit className="h-4 w-4" />
+                            {deletingSujetId === sujet.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-4 w-4" />
+                            )}
                           </Button>
-                        )}
+                        </div>
                       </div>
                     )}
                   </Card>
                 ))}
               </div>
-            </section>
-          )}
+            )}
+          </section>
 
           {/* Tableau des groupes style Google Sheets */}
           {projet?.groupes && projet.groupes.length > 0 && (
@@ -856,6 +1053,59 @@ export default function ProjectDetailsSlideOver({
           </Button>
         </div>
       </div>
+
+      {/* Modal de confirmation de suppression de sujet */}
+      <Dialog 
+        open={deleteSujetDialogOpen} 
+        onOpenChange={(open) => {
+          setDeleteSujetDialogOpen(open);
+          if (!open) {
+            setSujetToDelete(null);
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-[500px] z-[60]">
+          <DialogHeader>
+            <DialogTitle>Supprimer le sujet</DialogTitle>
+            <DialogDescription>
+              Êtes-vous sûr de vouloir supprimer le sujet <strong>{sujetToDelete?.titre_sujet}</strong> ?
+              <br />
+              <br />
+              Cette action est irréversible. Les groupes associés à ce sujet seront également affectés.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setDeleteSujetDialogOpen(false);
+                setSujetToDelete(null);
+              }}
+              disabled={deletingSujetId === sujetToDelete?.id}
+            >
+              Annuler
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmDeleteSujet}
+              disabled={deletingSujetId === sujetToDelete?.id}
+              className="bg-red-500 hover:bg-red-600 text-white"
+            >
+              {deletingSujetId === sujetToDelete?.id ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Suppression...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Supprimer
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

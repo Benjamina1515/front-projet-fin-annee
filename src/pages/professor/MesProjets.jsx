@@ -149,11 +149,29 @@ const MesProjets = () => {
 
       toast.success(`${validSujets.length} sujet(s) ajouté(s) avec succès !`);
       setOpenSujetsSlideOver(false);
-      setSelectedProjet(null);
       await loadProjets();
+      
+      // Répartir automatiquement les étudiants après l'ajout des sujets
+      try {
+        setRepartirLoading(true);
+        const projetAvecRepartition = await projectService.repartirEtudiants(selectedProjet.id);
+        toast.success('Répartition automatique effectuée avec succès !');
+        await loadProjets();
+        // Ouvrir le slideOver de détails pour voir la répartition
+        setSelectedProjet(projetAvecRepartition);
+        setOpenDetailsSlideOver(true);
+      } catch (repartitionError) {
+        console.error('Erreur lors de la répartition automatique:', repartitionError);
+        // Ne pas bloquer si la répartition échoue, juste afficher un avertissement
+        toast.warning('Les sujets ont été ajoutés, mais la répartition automatique a échoué. Vous pouvez la faire manuellement.');
+        setSelectedProjet(null);
+      } finally {
+        setRepartirLoading(false);
+      }
     } catch (error) {
       console.error('Erreur lors de l\'ajout des sujets:', error);
       toast.error(error.response?.data?.message || 'Erreur lors de l\'ajout des sujets');
+      setSelectedProjet(null);
     } finally {
       setSubmitting(false);
     }

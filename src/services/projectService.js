@@ -43,6 +43,12 @@ export const projectService = {
     return response.data?.sujet;
   },
 
+  // Supprimer un sujet
+  deleteSujet: async (id) => {
+    const response = await api.delete(`/sujets/${id}`);
+    return response.data;
+  },
+
   // Répartir automatiquement les étudiants
   repartirEtudiants: async (projetId) => {
     const response = await api.post(`/projets/${projetId}/repartition`);
