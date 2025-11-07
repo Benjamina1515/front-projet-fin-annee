@@ -581,48 +581,33 @@ const StudentProjects = () => {
                 </div>
               )}
 
-              {/* Titre du projet */}
+              {/* Titre du projet avec description */}
               <div className="space-y-2">
                 <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
                   <BookOpen className="h-8 w-8 text-blue-600" />
-                  {selectedProjet.titre}
+                  <span>
+                    {selectedProjet.titre}
+                    {selectedProjet.description && (
+                      <span className="font-normal text-2xl"> ({selectedProjet.description})</span>
+                    )}
+                  </span>
                 </h1>
               </div>
-
-              {/* Description du projet */}
-              {selectedProjet.description && (
-                <div className="space-y-3">
-                  <h2 className="text-xl font-semibold text-gray-900 border-b border-gray-200 pb-2">
-                    Description du projet
-                  </h2>
-                  <p className="text-base text-gray-700 leading-relaxed whitespace-pre-wrap">
-                    {selectedProjet.description}
-                  </p>
-                </div>
-              )}
 
               {/* Sujet assigné */}
               {selectedProjet.groupe?.sujet && (
                 <div className="space-y-3">
-                  <h2 className="text-xl font-semibold text-gray-900 border-b border-purple-200 pb-2 flex items-center gap-2">
-                    <FileText className="h-5 w-5 text-purple-600" />
-                    Sujet assigné
+                  <h2 className="text-xl font-semibold text-gray-900 border-b border-gray-200 pb-2">
+                    Sujet: {selectedProjet.groupe.sujet.titre_sujet}
                   </h2>
-                  <div className="space-y-3 bg-purple-50 p-5 rounded-lg border border-purple-200">
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                        {selectedProjet.groupe.sujet.titre_sujet}
-                      </h3>
+                  {selectedProjet.groupe.sujet.description && (
+                    <div className="space-y-2">
+                      <h4 className="text-sm font-medium text-gray-700">Détails du sujet:</h4>
+                      <p className="text-base text-gray-700 leading-relaxed whitespace-pre-wrap">
+                        {selectedProjet.groupe.sujet.description}
+                      </p>
                     </div>
-                    {selectedProjet.groupe.sujet.description && (
-                      <div>
-                        <h4 className="text-sm font-medium text-gray-700 mb-2">Détails du sujet:</h4>
-                        <p className="text-base text-gray-700 leading-relaxed whitespace-pre-wrap">
-                          {selectedProjet.groupe.sujet.description}
-                        </p>
-                      </div>
-                    )}
-                  </div>
+                  )}
                 </div>
               )}
 
