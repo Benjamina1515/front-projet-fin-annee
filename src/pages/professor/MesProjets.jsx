@@ -34,6 +34,8 @@ const MesProjets = () => {
   const [submitting, setSubmitting] = useState(false);
   const [submittingSujet, setSubmittingSujet] = useState(false);
   const [deletingProjectId, setDeletingProjectId] = useState(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [projectToDelete, setProjectToDelete] = useState(null);
 
   useEffect(() => {
     loadProjets();
@@ -214,22 +216,29 @@ const MesProjets = () => {
     }
   };
 
-  const handleDeleteProject = async (projetId) => {
-    // Demander confirmation
-    if (!window.confirm('Êtes-vous sûr de vouloir supprimer ce projet ? Cette action est irréversible et supprimera également tous les sujets et groupes associés.')) {
-      return;
-    }
+  const handleDeleteProject = (projetId) => {
+    // Trouver le projet à supprimer pour afficher son titre dans la modal
+    const projet = projets.find(p => p.id === projetId);
+    setProjectToDelete({ id: projetId, titre: projet?.titre || 'ce projet' });
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!projectToDelete) return;
 
     try {
-      setDeletingProjectId(projetId);
-      await projectService.deleteProject(projetId);
+      setDeletingProjectId(projectToDelete.id);
+      await projectService.deleteProject(projectToDelete.id);
       toast.success('Projet supprimé avec succès !');
       await loadProjets();
       // Fermer le slideOver de détails si le projet supprimé était affiché
-      if (selectedProjet && selectedProjet.id === projetId) {
+      if (selectedProjet && selectedProjet.id === projectToDelete.id) {
         setOpenDetailsSlideOver(false);
         setSelectedProjet(null);
       }
+      // Fermer la modal
+      setDeleteDialogOpen(false);
+      setProjectToDelete(null);
     } catch (error) {
       console.error('Erreur lors de la suppression du projet:', error);
       toast.error(error.response?.data?.message || 'Erreur lors de la suppression du projet');
@@ -483,6 +492,59 @@ const MesProjets = () => {
         onEditSujet={handleEditSujet}
         repartirLoading={repartirLoading}
       />
+
+      {/* Modal de confirmation de suppression */}
+      <Dialog 
+        open={deleteDialogOpen} 
+        onOpenChange={(open) => {
+          setDeleteDialogOpen(open);
+          if (!open) {
+            setProjectToDelete(null);
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-[500px] z-[60]">
+          <DialogHeader>
+            <DialogTitle>Supprimer le projet</DialogTitle>
+            <DialogDescription>
+              Êtes-vous sûr de vouloir supprimer le projet <strong>{projectToDelete?.titre}</strong> ?
+              <br />
+              <br />
+              Cette action est irréversible et supprimera également tous les sujets et groupes associés.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setDeleteDialogOpen(false);
+                setProjectToDelete(null);
+              }}
+              disabled={deletingProjectId === projectToDelete?.id}
+            >
+              Annuler
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmDelete}
+              disabled={deletingProjectId === projectToDelete?.id}
+              className="bg-red-500 hover:bg-red-600 text-white"
+            >
+              {deletingProjectId === projectToDelete?.id ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Suppression...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Supprimer
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
