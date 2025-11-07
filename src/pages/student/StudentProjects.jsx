@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { projectService } from '../../services/projectService';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Skeleton } from '../../components/ui/skeleton';
-import { BookOpen, Users, User, Calendar, FileText } from 'lucide-react';
+import { BookOpen, Users, User, Calendar, FileText, GraduationCap } from 'lucide-react';
 import { toast } from 'react-toastify';
 
 const StudentProjects = () => {
@@ -44,19 +44,18 @@ const StudentProjects = () => {
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          <div className="space-y-2">
-            <Skeleton className="h-4 w-24" />
-            <Skeleton className="h-4 w-full" />
-          </div>
+          <Skeleton className="h-16 w-full rounded-lg" />
+          <Skeleton className="h-16 w-full rounded-lg" />
           <div className="space-y-2">
             <Skeleton className="h-4 w-32" />
-            <Skeleton className="h-20 w-full" />
+            <Skeleton className="h-20 w-full rounded-lg" />
           </div>
+          <Skeleton className="h-12 w-full rounded-lg" />
           <div className="space-y-2">
             <Skeleton className="h-4 w-24" />
             <div className="space-y-2">
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-12 w-full rounded-lg" />
+              <Skeleton className="h-12 w-full rounded-lg" />
             </div>
           </div>
         </div>
@@ -83,11 +82,11 @@ const StudentProjects = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Mes Projets</h1>
-          <p className="text-gray-600 mt-2">Projets auxquels vous êtes assigné</p>
+          <p className="text-gray-600 mt-2">Projets auxquels vous êtes assigné par vos professeurs</p>
         </div>
       </div>
 
@@ -104,34 +103,41 @@ const StudentProjects = () => {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
           {projets.map((projet) => (
-            <Card key={projet.id} className="hover:shadow-xl transition-all duration-300 border border-gray-200">
-              <CardHeader>
-                <CardTitle className="text-xl flex items-center gap-2">
-                  <BookOpen className="h-5 w-5 text-blue-600" />
-                  {projet.titre}
-                </CardTitle>
+            <Card 
+              key={projet.id} 
+              className="hover:shadow-xl transition-all duration-300 border border-gray-200 hover:border-blue-300 group"
+            >
+              <CardHeader className="pb-4">
+                <div className="flex items-start justify-between gap-2">
+                  <CardTitle className="text-lg flex items-start gap-2 group-hover:text-blue-600 transition-colors">
+                    <BookOpen className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                    <span className="line-clamp-2">{projet.titre}</span>
+                  </CardTitle>
+                </div>
                 {projet.description && (
-                  <CardDescription className="mt-2">
+                  <CardDescription className="mt-2 line-clamp-2">
                     {projet.description}
                   </CardDescription>
                 )}
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {/* Dates */}
-                  {(projet.date_debut || projet.date_fin) && (
-                    <div className="flex items-center gap-2 p-3 rounded-lg bg-blue-50">
-                      <Calendar className="h-4 w-4 text-blue-600" />
-                      <div className="flex-1">
-                        <p className="text-xs text-gray-600">Période</p>
-                        <p className="font-semibold text-sm text-gray-900">
-                          {formatDate(projet.date_debut)} - {formatDate(projet.date_fin)}
-                        </p>
-                      </div>
+                  {/* Professeur qui a assigné le projet */}
+                  <div className="flex items-center gap-3 p-3 rounded-lg bg-indigo-50 border border-indigo-100">
+                    <div className="flex-shrink-0 w-10 h-10 rounded-full bg-indigo-200 flex items-center justify-center">
+                      <GraduationCap className="h-5 w-5 text-indigo-700" />
                     </div>
-                  )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-gray-600 mb-0.5">Professeur qui a assigné le projet</p>
+                      {projet.prof && projet.prof.nom ? (
+                        <p className="font-semibold text-sm text-gray-900 truncate">{projet.prof.nom}</p>
+                      ) : (
+                        <p className="font-semibold text-sm text-gray-500 italic">Non disponible</p>
+                      )}
+                    </div>
+                  </div>
 
                   {/* Sujet assigné */}
                   {projet.groupe?.sujet && (
@@ -141,21 +147,45 @@ const StudentProjects = () => {
                         <h4 className="font-semibold text-sm text-gray-900">Sujet assigné</h4>
                       </div>
                       <div className="p-3 rounded-lg bg-purple-50 border border-purple-100">
-                        <p className="font-medium text-gray-900">{projet.groupe.sujet.titre_sujet}</p>
+                        <p className="font-semibold text-sm text-gray-900">{projet.groupe.sujet.titre_sujet}</p>
                         {projet.groupe.sujet.description && (
-                          <p className="text-sm text-gray-600 mt-1">{projet.groupe.sujet.description}</p>
+                          <p className="text-xs text-gray-600 mt-1.5 line-clamp-2">{projet.groupe.sujet.description}</p>
                         )}
                       </div>
                     </div>
                   )}
 
+                  {/* Dates */}
+                  {(projet.date_debut || projet.date_fin) && (
+                    <div className="flex items-center gap-3 p-3 rounded-lg bg-blue-50 border border-blue-100">
+                      <Calendar className="h-4 w-4 text-blue-600 flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs text-gray-600 mb-0.5">Période du projet</p>
+                        <div className="flex flex-col gap-0.5">
+                          {projet.date_debut && (
+                            <p className="text-xs text-gray-700">
+                              <span className="font-medium">Début:</span> {formatDate(projet.date_debut)}
+                            </p>
+                          )}
+                          {projet.date_fin && (
+                            <p className="text-xs text-gray-700">
+                              <span className="font-medium">Deadline:</span> {formatDate(projet.date_fin)}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Numéro de groupe */}
-                  <div className="flex items-center gap-2 p-2 rounded-lg bg-gray-50">
-                    <Users className="h-4 w-4 text-gray-600" />
-                    <span className="text-sm font-medium text-gray-900">
-                      Groupe {projet.groupe?.numero_groupe || '-'}
-                    </span>
-                  </div>
+                  {projet.groupe?.numero_groupe && (
+                    <div className="flex items-center gap-2 p-2.5 rounded-lg bg-gray-50 border border-gray-200">
+                      <Users className="h-4 w-4 text-gray-600" />
+                      <span className="text-sm font-semibold text-gray-900">
+                        Groupe {projet.groupe.numero_groupe}
+                      </span>
+                    </div>
+                  )}
 
                   {/* Coéquipiers */}
                   {projet.groupe?.coequipiers && projet.groupe.coequipiers.length > 0 && (
@@ -166,21 +196,21 @@ const StudentProjects = () => {
                           Coéquipiers ({projet.groupe.coequipiers.length})
                         </h4>
                       </div>
-                      <div className="space-y-2">
+                      <div className="space-y-1.5 max-h-48 overflow-y-auto">
                         {projet.groupe.coequipiers.map((coequipier) => (
                           <div
                             key={coequipier.id}
-                            className="flex items-center gap-3 p-3 rounded-lg bg-green-50 border border-green-100"
+                            className="flex items-center gap-2.5 p-2.5 rounded-lg bg-green-50 border border-green-100 hover:bg-green-100 transition-colors"
                           >
                             <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-200 flex items-center justify-center">
-                              <span className="text-green-700 font-semibold text-sm">
+                              <span className="text-green-700 font-semibold text-xs">
                                 {coequipier.nom ? coequipier.nom.charAt(0).toUpperCase() : '?'}
                               </span>
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="font-medium text-gray-900 truncate">{coequipier.nom || '-'}</p>
+                              <p className="font-medium text-sm text-gray-900 truncate">{coequipier.nom || '-'}</p>
                               {coequipier.matricule && (
-                                <p className="text-xs text-gray-500">Matricule: {coequipier.matricule}</p>
+                                <p className="text-xs text-gray-500">Mat: {coequipier.matricule}</p>
                               )}
                             </div>
                           </div>
@@ -191,7 +221,7 @@ const StudentProjects = () => {
 
                   {(!projet.groupe?.coequipiers || projet.groupe.coequipiers.length === 0) && (
                     <div className="p-3 rounded-lg bg-gray-50 border border-gray-200">
-                      <p className="text-sm text-gray-500 text-center">Vous êtes seul dans ce groupe</p>
+                      <p className="text-xs text-gray-500 text-center">Vous êtes seul dans ce groupe</p>
                     </div>
                   )}
                 </div>
