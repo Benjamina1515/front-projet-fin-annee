@@ -151,22 +151,13 @@ const MesProjets = () => {
       setOpenSujetsSlideOver(false);
       await loadProjets();
       
-      // Répartir automatiquement les étudiants après l'ajout des sujets
-      try {
-        setRepartirLoading(true);
-        const projetAvecRepartition = await projectService.repartirEtudiants(selectedProjet.id);
-        toast.success('Répartition automatique effectuée avec succès !');
-        await loadProjets();
-        // Ouvrir le slideOver de détails pour voir la répartition
-        setSelectedProjet(projetAvecRepartition);
+      // Ouvrir le slideOver de détails pour permettre à l'utilisateur de répartir manuellement
+      if (selectedProjet) {
+        const updatedProjet = await projectService.getProjectById(selectedProjet.id);
+        setSelectedProjet(updatedProjet);
         setOpenDetailsSlideOver(true);
-      } catch (repartitionError) {
-        console.error('Erreur lors de la répartition automatique:', repartitionError);
-        // Ne pas bloquer si la répartition échoue, juste afficher un avertissement
-        toast.warning('Les sujets ont été ajoutés, mais la répartition automatique a échoué. Vous pouvez la faire manuellement.');
+      } else {
         setSelectedProjet(null);
-      } finally {
-        setRepartirLoading(false);
       }
     } catch (error) {
       console.error('Erreur lors de l\'ajout des sujets:', error);
@@ -183,12 +174,24 @@ const MesProjets = () => {
       const projet = await projectService.repartirEtudiants(projetId);
       toast.success('Répartition effectuée avec succès !');
       await loadProjets();
-      // Ouvrir le slideOver de détails pour voir la répartition
-      setSelectedProjet(projet);
-      setOpenDetailsSlideOver(true);
+      
+      // Mettre à jour le projet sélectionné si le slideOver est déjà ouvert
+      if (selectedProjet && selectedProjet.id === projetId && openDetailsSlideOver) {
+        setSelectedProjet(projet);
+      } else if (!openDetailsSlideOver) {
+        // Ouvrir le slideOver de détails seulement s'il n'est pas déjà ouvert
+        setSelectedProjet(projet);
+        setOpenDetailsSlideOver(true);
+      } else {
+        // Mettre à jour le projet sélectionné
+        setSelectedProjet(projet);
+      }
+      
+      return projet;
     } catch (error) {
       console.error('Erreur lors de la répartition:', error);
       toast.error(error.response?.data?.message || 'Erreur lors de la répartition');
+      throw error;
     } finally {
       setRepartirLoading(false);
     }
