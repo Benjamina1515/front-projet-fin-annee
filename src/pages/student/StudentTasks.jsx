@@ -10,6 +10,7 @@ import {
   AlertCircle,
   CheckCircle2,
   Clock,
+  MoreVertical,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -24,7 +25,6 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
@@ -32,6 +32,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select-new';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 // Types de statut
 const STATUS_TYPES = {
@@ -59,40 +65,40 @@ const PRIORITY_COLORS = {
 const initialTasks = [
   {
     id: '1',
-    title: 'Build a wedding website',
-    description: 'Home to your registry, online RSVP and wedding details. Free and foolproof you\'ll have it live in no time.',
+    matricule: 'ETU001',
+    subjectTitle: 'Système de gestion de projet',
     dueDate: '2025-08-10',
     priority: PRIORITIES.HIGH,
     status: STATUS_TYPES.TODO,
   },
   {
     id: '2',
-    title: 'Hire Photographer',
-    description: 'Find and book a professional photographer for the event.',
+    matricule: 'ETU002',
+    subjectTitle: 'Application web moderne',
     dueDate: '2025-08-15',
     priority: PRIORITIES.MID,
     status: STATUS_TYPES.TODO,
   },
   {
     id: '3',
-    title: 'Confirm Decor & Setup',
-    description: 'Finalize decoration plans and setup arrangements.',
+    matricule: 'ETU003',
+    subjectTitle: 'Base de données avancée',
     dueDate: '2025-08-20',
     priority: PRIORITIES.HIGH,
     status: STATUS_TYPES.IN_PROGRESS,
   },
   {
     id: '4',
-    title: 'Order Catering',
-    description: 'Place order for food and beverages.',
+    matricule: 'ETU004',
+    subjectTitle: 'Algorithmes et structures de données',
     dueDate: '2025-07-25',
     priority: PRIORITIES.MID,
     status: STATUS_TYPES.OVERDUE,
   },
   {
     id: '5',
-    title: 'Send Invitations',
-    description: 'Design and send wedding invitations to all guests.',
+    matricule: 'ETU005',
+    subjectTitle: 'Interface utilisateur responsive',
     dueDate: '2025-08-05',
     priority: PRIORITIES.LOW,
     status: STATUS_TYPES.DONE,
@@ -105,8 +111,8 @@ const StudentTasks = () => {
   const [isNewTaskOpen, setIsNewTaskOpen] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
   const [newTask, setNewTask] = useState({
-    title: '',
-    description: '',
+    matricule: '',
+    subjectTitle: '',
     dueDate: '',
     priority: PRIORITIES.MID,
     status: STATUS_TYPES.TODO,
@@ -114,7 +120,7 @@ const StudentTasks = () => {
 
 
   const handleAddTask = () => {
-    if (!newTask.title.trim()) return;
+    if (!newTask.matricule.trim() || !newTask.subjectTitle.trim()) return;
 
     const task = {
       id: Date.now().toString(),
@@ -124,8 +130,8 @@ const StudentTasks = () => {
 
     setTasks((prev) => [...prev, task]);
     setNewTask({
-      title: '',
-      description: '',
+      matricule: '',
+      subjectTitle: '',
       dueDate: '',
       priority: PRIORITIES.MID,
       status: STATUS_TYPES.TODO,
@@ -134,7 +140,7 @@ const StudentTasks = () => {
   };
 
   const handleEditTask = () => {
-    if (!editingTask || !editingTask.title.trim()) return;
+    if (!editingTask || !editingTask.matricule.trim() || !editingTask.subjectTitle.trim()) return;
 
     setTasks((prev) =>
       prev.map((task) => (task.id === editingTask.id ? editingTask : task))
@@ -217,10 +223,14 @@ const StudentTasks = () => {
           <CardContent className="p-4">
             <div className="flex items-start justify-between gap-2 mb-2">
               <div className="flex-1">
-                <h3 className="font-semibold text-sm text-gray-900 mb-1">{task.title}</h3>
-                <p className="text-xs text-gray-600 mb-3 line-clamp-2">
-                  {task.description}
-                </p>
+                <div className="mb-2">
+                  <span className="text-xs text-gray-500">Matricule:</span>
+                  <p className="font-semibold text-sm text-gray-900">{task.matricule}</p>
+                </div>
+                <div className="mb-3">
+                  <span className="text-xs text-gray-500">Titre du sujet:</span>
+                  <p className="text-sm text-gray-900 line-clamp-2">{task.subjectTitle}</p>
+                </div>
               </div>
               <div className="flex items-center gap-1">
                 <button
@@ -247,7 +257,7 @@ const StudentTasks = () => {
             <div className="flex items-center gap-2 mb-3">
               <CalendarIcon className="h-3.5 w-3.5 text-gray-400" />
               <span className="text-xs text-gray-500">
-                {formatDate(task.dueDate)}
+                Deadline: {formatDate(task.dueDate)}
               </span>
             </div>
 
@@ -334,7 +344,7 @@ const StudentTasks = () => {
               onClick={() => setIsNewTaskOpen(true)}
             >
               <Plus className="h-4 w-4 mr-2" />
-              New task
+              Nouvelle tâche
             </Button>
           </div>
         </div>
@@ -422,19 +432,19 @@ const StudentTasks = () => {
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Titre
+                      Matricule
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Description
+                      Titre du sujet
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Statut
+                      Date deadline
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Priorité
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Date d'échéance
+                      Statut
                     </th>
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Actions
@@ -453,13 +463,26 @@ const StudentTasks = () => {
                       <tr key={task.id} className="hover:bg-gray-50 transition-colors">
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm font-medium text-gray-900">
-                            {task.title}
+                            {task.matricule}
                           </div>
                         </td>
                         <td className="px-6 py-4">
-                          <div className="text-sm text-gray-600 max-w-md truncate">
-                            {task.description || '-'}
+                          <div className="text-sm text-gray-900 max-w-md">
+                            {task.subjectTitle || '-'}
                           </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <CalendarIcon className="h-4 w-4 text-gray-400" />
+                            <span>{formatDate(task.dueDate)}</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <Badge
+                            className={`${PRIORITY_COLORS[task.priority]} border font-medium text-xs`}
+                          >
+                            {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
+                          </Badge>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <Badge
@@ -477,38 +500,27 @@ const StudentTasks = () => {
                             {getStatusLabel(task.status)}
                           </Badge>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <Badge
-                            className={`${PRIORITY_COLORS[task.priority]} border font-medium text-xs`}
-                          >
-                            {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
-                          </Badge>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <CalendarIcon className="h-4 w-4 text-gray-400" />
-                            <span>{formatDate(task.dueDate)}</span>
-                          </div>
-                        </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <div className="flex items-center justify-end gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setEditingTask({ ...task })}
-                              className="h-8 w-8 p-0"
-                            >
-                              <Edit2 className="h-4 w-4 text-gray-600 hover:text-gray-900" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDeleteTask(task.id)}
-                              className="h-8 w-8 p-0"
-                            >
-                              <Trash2 className="h-4 w-4 text-red-500 hover:text-red-700" />
-                            </Button>
-                          </div>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger>
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => setEditingTask({ ...task })}>
+                                <Edit2 className="h-4 w-4 mr-2" />
+                                Modifier
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                onClick={() => handleDeleteTask(task.id)}
+                                className="text-red-600 focus:text-red-600"
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Supprimer
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </td>
                       </tr>
                     ))
@@ -531,34 +543,33 @@ const StudentTasks = () => {
       <Dialog open={isNewTaskOpen} onOpenChange={setIsNewTaskOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>New Task</DialogTitle>
+            <DialogTitle>Nouvelle Tâche</DialogTitle>
             <DialogDescription>
-              Create a new task to track your progress
+              Créer une nouvelle tâche pour suivre votre progression
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div>
-              <Label htmlFor="title">Title</Label>
+              <Label htmlFor="matricule">Matricule</Label>
               <Input
-                id="title"
-                value={newTask.title}
-                onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
-                placeholder="Enter task title"
+                id="matricule"
+                value={newTask.matricule}
+                onChange={(e) => setNewTask({ ...newTask, matricule: e.target.value })}
+                placeholder="Entrez le matricule"
               />
             </div>
             <div>
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                value={newTask.description}
-                onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
-                placeholder="Enter task description"
-                rows={4}
+              <Label htmlFor="subjectTitle">Titre du sujet</Label>
+              <Input
+                id="subjectTitle"
+                value={newTask.subjectTitle}
+                onChange={(e) => setNewTask({ ...newTask, subjectTitle: e.target.value })}
+                placeholder="Entrez le titre du sujet"
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="dueDate">Due Date</Label>
+                <Label htmlFor="dueDate">Date deadline</Label>
                 <Input
                   id="dueDate"
                   type="date"
@@ -567,7 +578,7 @@ const StudentTasks = () => {
                 />
               </div>
               <div>
-                <Label htmlFor="priority">Priority</Label>
+                <Label htmlFor="priority">Priorité</Label>
                 <Select
                   value={newTask.priority}
                   onValueChange={(value) => setNewTask({ ...newTask, priority: value })}
@@ -586,10 +597,10 @@ const StudentTasks = () => {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsNewTaskOpen(false)}>
-              Cancel
+              Annuler
             </Button>
             <Button onClick={handleAddTask} className="bg-teal-600 hover:bg-teal-700">
-              Create Task
+              Créer la Tâche
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -600,36 +611,35 @@ const StudentTasks = () => {
         {editingTask && (
           <DialogContent className="max-w-2xl">
             <DialogHeader>
-              <DialogTitle>Edit Task</DialogTitle>
+              <DialogTitle>Modifier la Tâche</DialogTitle>
               <DialogDescription>
-                Update task details
+                Mettre à jour les détails de la tâche
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div>
-                <Label htmlFor="edit-title">Title</Label>
+                <Label htmlFor="edit-matricule">Matricule</Label>
                 <Input
-                  id="edit-title"
-                  value={editingTask.title}
-                  onChange={(e) => setEditingTask({ ...editingTask, title: e.target.value })}
-                  placeholder="Enter task title"
+                  id="edit-matricule"
+                  value={editingTask.matricule}
+                  onChange={(e) => setEditingTask({ ...editingTask, matricule: e.target.value })}
+                  placeholder="Entrez le matricule"
                 />
               </div>
               <div>
-                <Label htmlFor="edit-description">Description</Label>
-                <Textarea
-                  id="edit-description"
-                  value={editingTask.description}
+                <Label htmlFor="edit-subjectTitle">Titre du sujet</Label>
+                <Input
+                  id="edit-subjectTitle"
+                  value={editingTask.subjectTitle}
                   onChange={(e) =>
-                    setEditingTask({ ...editingTask, description: e.target.value })
+                    setEditingTask({ ...editingTask, subjectTitle: e.target.value })
                   }
-                  placeholder="Enter task description"
-                  rows={4}
+                  placeholder="Entrez le titre du sujet"
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="edit-dueDate">Due Date</Label>
+                  <Label htmlFor="edit-dueDate">Date deadline</Label>
                   <Input
                     id="edit-dueDate"
                     type="date"
@@ -640,7 +650,7 @@ const StudentTasks = () => {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="edit-priority">Priority</Label>
+                  <Label htmlFor="edit-priority">Priorité</Label>
                   <Select
                     value={editingTask.priority}
                     onValueChange={(value) =>
@@ -659,7 +669,7 @@ const StudentTasks = () => {
                 </div>
               </div>
               <div>
-                <Label htmlFor="edit-status">Status</Label>
+                <Label htmlFor="edit-status">Statut</Label>
                 <Select
                   value={editingTask.status}
                   onValueChange={(value) =>
@@ -680,10 +690,10 @@ const StudentTasks = () => {
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setEditingTask(null)}>
-                Cancel
+                Annuler
               </Button>
               <Button onClick={handleEditTask} className="bg-teal-600 hover:bg-teal-700">
-                Save Changes
+                Enregistrer les Modifications
               </Button>
             </DialogFooter>
           </DialogContent>
