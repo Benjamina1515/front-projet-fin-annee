@@ -787,7 +787,7 @@ const StudentTasks = () => {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <Badge
-                            className={`${PRIORITY_COLORS[task.priorite]} border font-medium text-xs`}
+                            className={`${PRIORITY_COLORS[task.priorite]} border font-medium text-xs pointer-events-none hover:bg-transparent`}
                           >
                             {task.priorite.charAt(0).toUpperCase() + task.priorite.slice(1)}
                           </Badge>
