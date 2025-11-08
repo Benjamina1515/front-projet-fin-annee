@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   Plus,
   LayoutGrid,
@@ -11,7 +11,15 @@ import {
   CheckCircle2,
   Clock,
   MoreVertical,
+  Search,
+  Filter,
+  X,
+  ChevronDown,
 } from 'lucide-react';
+import { taskService } from '../../services/taskService';
+import { projectService } from '../../services/projectService';
+import { useAuth } from '../../contexts/AuthContext';
+import { toast } from 'react-toastify';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -61,95 +69,169 @@ const PRIORITY_COLORS = {
   [PRIORITIES.LOW]: 'bg-blue-100 text-blue-700 border-blue-200',
 };
 
-// Données mockées initiales
-const initialTasks = [
-  {
-    id: '1',
-    matricule: 'ETU001',
-    subjectTitle: 'Système de gestion de projet',
-    dueDate: '2025-08-10',
-    priority: PRIORITIES.HIGH,
-    status: STATUS_TYPES.TODO,
-  },
-  {
-    id: '2',
-    matricule: 'ETU002',
-    subjectTitle: 'Application web moderne',
-    dueDate: '2025-08-15',
-    priority: PRIORITIES.MID,
-    status: STATUS_TYPES.TODO,
-  },
-  {
-    id: '3',
-    matricule: 'ETU003',
-    subjectTitle: 'Base de données avancée',
-    dueDate: '2025-08-20',
-    priority: PRIORITIES.HIGH,
-    status: STATUS_TYPES.IN_PROGRESS,
-  },
-  {
-    id: '4',
-    matricule: 'ETU004',
-    subjectTitle: 'Algorithmes et structures de données',
-    dueDate: '2025-07-25',
-    priority: PRIORITIES.MID,
-    status: STATUS_TYPES.OVERDUE,
-  },
-  {
-    id: '5',
-    matricule: 'ETU005',
-    subjectTitle: 'Interface utilisateur responsive',
-    dueDate: '2025-08-05',
-    priority: PRIORITIES.LOW,
-    status: STATUS_TYPES.DONE,
-  },
-];
-
 const StudentTasks = () => {
-  const [tasks, setTasks] = useState(initialTasks);
+  const { user } = useAuth();
+  const [tasks, setTasks] = useState([]);
+  const [projects, setProjects] = useState([]);
+  const [stats, setStats] = useState({
+    total: 0,
+    todo: 0,
+    in_progress: 0,
+    overdue: 0,
+    done: 0,
+  });
+  const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState('list'); // board, list, calendar
   const [isNewTaskOpen, setIsNewTaskOpen] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
   const [newTask, setNewTask] = useState({
-    matricule: '',
-    subjectTitle: '',
-    dueDate: '',
-    priority: PRIORITIES.MID,
-    status: STATUS_TYPES.TODO,
+    nom: '',
+    priorite: PRIORITIES.MID,
+    projet_id: '',
+    date_debut: '',
+    date_fin: '',
   });
+  
+  // États pour les filtres
+  const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'todo', 'in_progress', 'overdue', 'done'
+  const [searchQuery, setSearchQuery] = useState('');
+  const [projectFilter, setProjectFilter] = useState('all');
 
-
-  const handleAddTask = () => {
-    if (!newTask.matricule.trim() || !newTask.subjectTitle.trim()) return;
-
-    const task = {
-      id: Date.now().toString(),
-      ...newTask,
-      dueDate: newTask.dueDate || new Date().toISOString().split('T')[0],
+  // Charger les tâches et projets au montage
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        const [tasksData, projectsData, statsData] = await Promise.all([
+          taskService.getStudentTasks(),
+          projectService.getStudentProjects(),
+          taskService.getStats(),
+        ]);
+        
+        setTasks(tasksData);
+        setStats(statsData);
+        
+        // Extraire les projets uniques de la liste des projets de l'étudiant
+        const uniqueProjects = [];
+        projectsData.forEach((projet) => {
+          if (!uniqueProjects.find(p => p.id === projet.id)) {
+            uniqueProjects.push({
+              id: projet.id,
+              titre: projet.titre,
+            });
+          }
+        });
+        setProjects(uniqueProjects);
+      } catch (error) {
+        console.error('Erreur lors du chargement des données:', error);
+      } finally {
+        setLoading(false);
+      }
     };
 
-    setTasks((prev) => [...prev, task]);
-    setNewTask({
-      matricule: '',
-      subjectTitle: '',
-      dueDate: '',
-      priority: PRIORITIES.MID,
-      status: STATUS_TYPES.TODO,
-    });
-    setIsNewTaskOpen(false);
+    loadData();
+  }, []);
+
+
+  const handleAddTask = async () => {
+    if (!newTask.nom.trim() || !newTask.projet_id) {
+      toast.error('Veuillez remplir tous les champs obligatoires');
+      return;
+    }
+
+    try {
+      const createdTask = await taskService.createTask({
+        nom: newTask.nom,
+        priorite: newTask.priorite,
+        projet_id: parseInt(newTask.projet_id),
+        date_debut: newTask.date_debut || null,
+        date_fin: newTask.date_fin || null,
+      });
+
+      setTasks((prev) => [...prev, createdTask]);
+      
+      // Recharger les statistiques
+      const statsData = await taskService.getStats();
+      setStats(statsData);
+      
+      setNewTask({
+        nom: '',
+        priorite: PRIORITIES.MID,
+        projet_id: '',
+        date_debut: '',
+        date_fin: '',
+      });
+      setIsNewTaskOpen(false);
+      toast.success('Tâche créée avec succès');
+    } catch (error) {
+      console.error('Erreur lors de la création de la tâche:', error);
+      toast.error(error.response?.data?.message || 'Erreur lors de la création de la tâche');
+    }
   };
 
-  const handleEditTask = () => {
-    if (!editingTask || !editingTask.matricule.trim() || !editingTask.subjectTitle.trim()) return;
+  const handleEditTask = async () => {
+    if (!editingTask || !editingTask.nom.trim()) {
+      toast.error('Veuillez remplir tous les champs obligatoires');
+      return;
+    }
 
-    setTasks((prev) =>
-      prev.map((task) => (task.id === editingTask.id ? editingTask : task))
-    );
-    setEditingTask(null);
+    try {
+      const updatedTask = await taskService.updateTask(editingTask.id, {
+        nom: editingTask.nom,
+        priorite: editingTask.priorite,
+        projet_id: editingTask.projet_id,
+        date_debut: editingTask.date_debut || null,
+        date_fin: editingTask.date_fin || null,
+      });
+
+      setTasks((prev) =>
+        prev.map((task) => (task.id === updatedTask.id ? updatedTask : task))
+      );
+      
+      // Recharger les statistiques
+      const statsData = await taskService.getStats();
+      setStats(statsData);
+      
+      setEditingTask(null);
+      toast.success('Tâche modifiée avec succès');
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour de la tâche:', error);
+      toast.error(error.response?.data?.message || 'Erreur lors de la mise à jour de la tâche');
+    }
   };
 
-  const handleDeleteTask = (taskId) => {
-    setTasks((prev) => prev.filter((task) => task.id !== taskId));
+  const handleDeleteTask = async (taskId) => {
+    if (!confirm('Êtes-vous sûr de vouloir supprimer cette tâche ?')) return;
+
+    try {
+      await taskService.deleteTask(taskId);
+      setTasks((prev) => prev.filter((task) => task.id !== taskId));
+      
+      // Recharger les statistiques
+      const statsData = await taskService.getStats();
+      setStats(statsData);
+      toast.success('Tâche supprimée avec succès');
+    } catch (error) {
+      console.error('Erreur lors de la suppression de la tâche:', error);
+      toast.error(error.response?.data?.message || 'Erreur lors de la suppression de la tâche');
+    }
+  };
+
+  const handleStatusChange = async (taskId, newStatus) => {
+    try {
+      const updatedTask = await taskService.updateStatus(taskId, newStatus);
+      setTasks((prev) =>
+        prev.map((task) => (task.id === updatedTask.id ? updatedTask : task))
+      );
+      
+      // Recharger les statistiques
+      const statsData = await taskService.getStats();
+      setStats(statsData);
+      toast.success('Statut de la tâche mis à jour avec succès');
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour du statut:', error);
+      toast.error(error.response?.data?.message || 'Erreur lors de la mise à jour du statut');
+    }
   };
 
   const formatDate = (dateString) => {
@@ -190,13 +272,51 @@ const StudentTasks = () => {
     }
   };
 
-  // Organiser les tâches par statut
-  const tasksByStatus = {
-    [STATUS_TYPES.TODO]: tasks.filter((t) => t.status === STATUS_TYPES.TODO),
-    [STATUS_TYPES.IN_PROGRESS]: tasks.filter((t) => t.status === STATUS_TYPES.IN_PROGRESS),
-    [STATUS_TYPES.OVERDUE]: tasks.filter((t) => t.status === STATUS_TYPES.OVERDUE),
-    [STATUS_TYPES.DONE]: tasks.filter((t) => t.status === STATUS_TYPES.DONE),
-  };
+  // Obtenir la liste des projets uniques depuis les tâches
+  const projectNames = useMemo(() => {
+    const uniqueProjects = [...new Set(tasks.map(task => task.projet?.titre).filter(Boolean))];
+    return uniqueProjects.sort();
+  }, [tasks]);
+
+  // Filtrer les tâches
+  const filteredTasks = useMemo(() => {
+    return tasks.filter((task) => {
+      // Filtre par statut (par défaut exclure "done")
+      if (statusFilter === 'all') {
+        if (task.statut === STATUS_TYPES.DONE) return false;
+      } else if (statusFilter !== task.statut) {
+        return false;
+      }
+
+      // Filtre par projet
+      if (projectFilter !== 'all' && task.projet?.titre !== projectFilter) {
+        return false;
+      }
+
+      // Filtre par recherche (nom de la tâche ou projet)
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase();
+        const matchesNom = task.nom?.toLowerCase().includes(query);
+        const matchesProject = task.projet?.titre?.toLowerCase().includes(query);
+        
+        if (!matchesNom && !matchesProject) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [tasks, statusFilter, searchQuery, projectFilter]);
+
+  // Organiser les tâches filtrées par statut
+  const tasksByStatus = useMemo(() => {
+    return {
+      [STATUS_TYPES.TODO]: filteredTasks.filter((t) => t.statut === STATUS_TYPES.TODO),
+      [STATUS_TYPES.IN_PROGRESS]: filteredTasks.filter((t) => t.statut === STATUS_TYPES.IN_PROGRESS),
+      [STATUS_TYPES.OVERDUE]: filteredTasks.filter((t) => t.statut === STATUS_TYPES.OVERDUE),
+      [STATUS_TYPES.DONE]: filteredTasks.filter((t) => t.statut === STATUS_TYPES.DONE),
+    };
+  }, [filteredTasks]);
 
   const getStatusIcon = (status) => {
     switch (status) {
@@ -211,26 +331,36 @@ const StudentTasks = () => {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
   // Composant TaskCard pour le Kanban
   const TaskCard = ({ task }) => {
     return (
       <div className="group">
         <Card
           className={`mb-3 hover:shadow-md transition-shadow cursor-pointer ${getStatusColor(
-            task.status
+            task.statut
           )}`}
         >
           <CardContent className="p-4">
             <div className="flex items-start justify-between gap-2 mb-2">
               <div className="flex-1">
-                <div className="mb-2">
-                  <span className="text-xs text-gray-500">Matricule:</span>
-                  <p className="font-semibold text-sm text-gray-900">{task.matricule}</p>
-                </div>
                 <div className="mb-3">
-                  <span className="text-xs text-gray-500">Titre du sujet:</span>
-                  <p className="text-sm text-gray-900 line-clamp-2">{task.subjectTitle}</p>
+                  <span className="text-xs text-gray-500">Nom de la tâche:</span>
+                  <p className="text-sm text-gray-900 line-clamp-2 font-semibold">{task.nom}</p>
                 </div>
+                {task.projet && (
+                  <div className="mb-2">
+                    <span className="text-xs text-gray-500">Projet:</span>
+                    <p className="text-xs text-gray-600">{task.projet.titre}</p>
+                  </div>
+                )}
               </div>
               <div className="flex items-center gap-1">
                 <button
@@ -254,18 +384,12 @@ const StudentTasks = () => {
               </div>
             </div>
 
-            <div className="flex items-center gap-2 mb-3">
-              <CalendarIcon className="h-3.5 w-3.5 text-gray-400" />
-              <span className="text-xs text-gray-500">
-                Deadline: {formatDate(task.dueDate)}
-              </span>
-            </div>
 
-            <div className="flex items-center">
+            <div className="flex items-center gap-2">
               <Badge
-                className={`${PRIORITY_COLORS[task.priority]} border font-medium text-xs`}
+                className={`${PRIORITY_COLORS[task.priorite]} border font-medium text-xs`}
               >
-                {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
+                {task.priorite.charAt(0).toUpperCase() + task.priorite.slice(1)}
               </Badge>
             </div>
           </CardContent>
@@ -303,7 +427,7 @@ const StudentTasks = () => {
           variant="ghost"
           className="mb-4 text-teal-600 hover:text-teal-700 hover:bg-teal-50 flex-shrink-0 justify-start"
           onClick={() => {
-            setNewTask({ ...newTask, status });
+            setNewTask({ ...newTask, statut: status });
             setIsNewTaskOpen(true);
           }}
         >
@@ -394,7 +518,162 @@ const StudentTasks = () => {
       </div>
 
       {/* Content */}
-      <div className="py-8" >
+      <div className="px-8 py-8" >
+        {/* Statistiques */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+          <div className="bg-white rounded-lg shadow-md p-4 border border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-600 text-sm font-medium">Total</p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">{stats.total}</p>
+              </div>
+            </div>
+          </div>
+          <div className="bg-white rounded-lg shadow-md p-4 border border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-600 text-sm font-medium">To Do</p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">{stats.todo}</p>
+              </div>
+            </div>
+          </div>
+          <div className="bg-white rounded-lg shadow-md p-4 border border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-600 text-sm font-medium">En cours</p>
+                <p className="text-2xl font-bold text-orange-600 mt-1">{stats.in_progress}</p>
+              </div>
+            </div>
+          </div>
+          <div className="bg-white rounded-lg shadow-md p-4 border border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-600 text-sm font-medium">En retard</p>
+                <p className="text-2xl font-bold text-red-600 mt-1">{stats.overdue}</p>
+              </div>
+            </div>
+          </div>
+          <div className="bg-white rounded-lg shadow-md p-4 border border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-600 text-sm font-medium">Terminées</p>
+                <p className="text-2xl font-bold text-green-600 mt-1">{stats.done}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Filtres */}
+        <div className="mb-6 bg-white rounded-lg border border-gray-200 p-4">
+          <div className="flex flex-col sm:flex-row gap-4">
+            {/* Recherche */}
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Rechercher par nom de tâche ou projet..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Filtre par statut */}
+            <div className="w-full sm:w-48">
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Filtrer par statut" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tous (sauf terminées)</SelectItem>
+                  <SelectItem value={STATUS_TYPES.TODO}>To Do</SelectItem>
+                  <SelectItem value={STATUS_TYPES.IN_PROGRESS}>In Progress</SelectItem>
+                  <SelectItem value={STATUS_TYPES.OVERDUE}>Overdue</SelectItem>
+                  <SelectItem value={STATUS_TYPES.DONE}>Done</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Filtre par projet */}
+            <div className="w-full sm:w-48">
+              <Select value={projectFilter} onValueChange={setProjectFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Filtrer par projet" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tous les projets</SelectItem>
+                  {projectNames.map((projectName) => (
+                    <SelectItem key={projectName} value={projectName}>
+                      {projectName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Badges des filtres actifs */}
+          {(statusFilter !== 'all' || searchQuery || projectFilter !== 'all') && (
+            <div className="mt-4 flex flex-wrap gap-2 items-center">
+              <span className="text-sm text-gray-600 flex items-center gap-2">
+                <Filter className="h-4 w-4" />
+                Filtres actifs:
+              </span>
+              {statusFilter !== 'all' && (
+                <Badge
+                  variant="outline"
+                  className="cursor-pointer"
+                  onClick={() => setStatusFilter('all')}
+                >
+                  {getStatusLabel(statusFilter)}
+                  <X className="h-3 w-3 ml-1" />
+                </Badge>
+              )}
+              {projectFilter !== 'all' && (
+                <Badge
+                  variant="outline"
+                  className="cursor-pointer"
+                  onClick={() => setProjectFilter('all')}
+                >
+                  {projectFilter}
+                  <X className="h-3 w-3 ml-1" />
+                </Badge>
+              )}
+              {searchQuery && (
+                <Badge
+                  variant="outline"
+                  className="cursor-pointer"
+                  onClick={() => setSearchQuery('')}
+                >
+                  Recherche: {searchQuery}
+                  <X className="h-3 w-3 ml-1" />
+                </Badge>
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setStatusFilter('all');
+                  setSearchQuery('');
+                  setProjectFilter('all');
+                }}
+                className="h-6 text-xs"
+              >
+                Réinitialiser
+              </Button>
+            </div>
+          )}
+        </div>
+
         {viewMode === 'board' && (
           <div 
             className="border-2 container border-black rounded-lg"
@@ -435,10 +714,16 @@ const StudentTasks = () => {
                       Matricule
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Titre du sujet
+                      Nom de la tâche
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Date deadline
+                      Projet
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Date début
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Date fin
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Priorité
@@ -452,53 +737,95 @@ const StudentTasks = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {tasks.length === 0 ? (
+                  {filteredTasks.length === 0 ? (
                     <tr>
-                      <td colSpan="6" className="px-6 py-12 text-center text-gray-500">
+                      <td colSpan="8" className="px-6 py-12 text-center text-gray-500">
                         Aucune tâche trouvée
                       </td>
                     </tr>
                   ) : (
-                    tasks.map((task) => (
+                    filteredTasks.map((task) => (
                       <tr key={task.id} className="hover:bg-gray-50 transition-colors">
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm font-medium text-gray-900">
-                            {task.matricule}
+                            {task.etudiant?.matricule || '-'}
                           </div>
                         </td>
                         <td className="px-6 py-4">
-                          <div className="text-sm text-gray-900 max-w-md">
-                            {task.subjectTitle || '-'}
+                          <div className="text-sm font-medium text-gray-900 max-w-md">
+                            {task.nom || '-'}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">
+                            {task.projet?.titre || '-'}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <CalendarIcon className="h-4 w-4 text-gray-400" />
-                            <span>{formatDate(task.dueDate)}</span>
+                            {task.date_debut ? (
+                              <>
+                                <CalendarIcon className="h-4 w-4 text-gray-400" />
+                                <span>{formatDate(task.date_debut)}</span>
+                              </>
+                            ) : (
+                              <span className="text-gray-400">-</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                            {task.date_fin ? (
+                              <>
+                                <CalendarIcon className="h-4 w-4 text-gray-400" />
+                                <span>{formatDate(task.date_fin)}</span>
+                              </>
+                            ) : (
+                              <span className="text-gray-400">-</span>
+                            )}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <Badge
-                            className={`${PRIORITY_COLORS[task.priority]} border font-medium text-xs`}
+                            className={`${PRIORITY_COLORS[task.priorite]} border font-medium text-xs`}
                           >
-                            {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
+                            {task.priorite.charAt(0).toUpperCase() + task.priorite.slice(1)}
                           </Badge>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <Badge
-                            variant="outline"
-                            className={
-                              task.status === STATUS_TYPES.IN_PROGRESS
-                                ? 'border-orange-300 text-orange-700 bg-orange-50'
-                                : task.status === STATUS_TYPES.OVERDUE
-                                ? 'border-red-300 text-red-700 bg-red-50'
-                                : task.status === STATUS_TYPES.DONE
-                                ? 'border-green-300 text-green-700 bg-green-50'
-                                : 'border-gray-300 text-gray-700 bg-gray-50'
-                            }
-                          >
-                            {getStatusLabel(task.status)}
-                          </Badge>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger className="inline-flex items-center">
+                              <Badge
+                                variant="outline"
+                                className={
+                                  task.statut === STATUS_TYPES.IN_PROGRESS
+                                    ? 'border-orange-300 text-orange-700 bg-orange-50 cursor-pointer hover:bg-orange-100'
+                                    : task.statut === STATUS_TYPES.OVERDUE
+                                    ? 'border-red-300 text-red-700 bg-red-50 cursor-pointer hover:bg-red-100'
+                                    : task.statut === STATUS_TYPES.DONE
+                                    ? 'border-green-300 text-green-700 bg-green-50 cursor-pointer hover:bg-green-100'
+                                    : 'border-gray-300 text-gray-700 bg-gray-50 cursor-pointer hover:bg-gray-100'
+                                }
+                              >
+                                {getStatusLabel(task.statut)}
+                                <ChevronDown className="h-3 w-3 ml-1" />
+                              </Badge>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="z-[100]">
+                              <DropdownMenuItem onClick={() => handleStatusChange(task.id, STATUS_TYPES.TODO)}>
+                                To Do
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleStatusChange(task.id, STATUS_TYPES.IN_PROGRESS)}>
+                                In Progress
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleStatusChange(task.id, STATUS_TYPES.OVERDUE)}>
+                                Overdue
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleStatusChange(task.id, STATUS_TYPES.DONE)}>
+                                Done
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                           <DropdownMenu>
@@ -550,49 +877,74 @@ const StudentTasks = () => {
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div>
-              <Label htmlFor="matricule">Matricule</Label>
+              <Label htmlFor="nom">Nom de la tâche *</Label>
               <Input
-                id="matricule"
-                value={newTask.matricule}
-                onChange={(e) => setNewTask({ ...newTask, matricule: e.target.value })}
-                placeholder="Entrez le matricule"
+                id="nom"
+                value={newTask.nom}
+                onChange={(e) => setNewTask({ ...newTask, nom: e.target.value })}
+                placeholder="Entrez le nom de la tâche"
+                required
               />
             </div>
             <div>
-              <Label htmlFor="subjectTitle">Titre du sujet</Label>
-              <Input
-                id="subjectTitle"
-                value={newTask.subjectTitle}
-                onChange={(e) => setNewTask({ ...newTask, subjectTitle: e.target.value })}
-                placeholder="Entrez le titre du sujet"
-              />
+              <Label htmlFor="priorite">Priorité *</Label>
+              <Select
+                value={newTask.priorite}
+                onValueChange={(value) => setNewTask({ ...newTask, priorite: value })}
+              >
+                <SelectTrigger id="priorite">
+                  <SelectValue placeholder="Sélectionnez une priorité" />
+                </SelectTrigger>
+                <SelectContent position="popper" className="!z-[100]">
+                  <SelectItem value={PRIORITIES.HIGH}>High</SelectItem>
+                  <SelectItem value={PRIORITIES.MID}>Mid</SelectItem>
+                  <SelectItem value={PRIORITIES.LOW}>Low</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="dueDate">Date deadline</Label>
+                <Label htmlFor="date_debut">Date début</Label>
                 <Input
-                  id="dueDate"
+                  id="date_debut"
                   type="date"
-                  value={newTask.dueDate}
-                  onChange={(e) => setNewTask({ ...newTask, dueDate: e.target.value })}
+                  value={newTask.date_debut}
+                  onChange={(e) => setNewTask({ ...newTask, date_debut: e.target.value })}
                 />
               </div>
               <div>
-                <Label htmlFor="priority">Priorité</Label>
-                <Select
-                  value={newTask.priority}
-                  onValueChange={(value) => setNewTask({ ...newTask, priority: value })}
-                >
-                  <SelectTrigger id="priority">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={PRIORITIES.HIGH}>High</SelectItem>
-                    <SelectItem value={PRIORITIES.MID}>Mid</SelectItem>
-                    <SelectItem value={PRIORITIES.LOW}>Low</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="date_fin">Date fin</Label>
+                <Input
+                  id="date_fin"
+                  type="date"
+                  value={newTask.date_fin}
+                  onChange={(e) => setNewTask({ ...newTask, date_fin: e.target.value })}
+                />
               </div>
+            </div>
+            <div>
+              <Label htmlFor="projet_id">Projet *</Label>
+              <Select
+                value={newTask.projet_id}
+                onValueChange={(value) => setNewTask({ ...newTask, projet_id: value })}
+              >
+                <SelectTrigger id="projet_id">
+                  <SelectValue placeholder="Sélectionnez un projet" />
+                </SelectTrigger>
+                <SelectContent position="popper" className="!z-[100]">
+                  {projects.length > 0 ? (
+                    projects.map((project) => (
+                      <SelectItem key={project.id} value={project.id.toString()}>
+                        {project.titre}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="" disabled>
+                      Aucun projet disponible
+                    </SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter>
@@ -618,72 +970,82 @@ const StudentTasks = () => {
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div>
-                <Label htmlFor="edit-matricule">Matricule</Label>
+                <Label htmlFor="edit-nom">Nom de la tâche *</Label>
                 <Input
-                  id="edit-matricule"
-                  value={editingTask.matricule}
-                  onChange={(e) => setEditingTask({ ...editingTask, matricule: e.target.value })}
-                  placeholder="Entrez le matricule"
+                  id="edit-nom"
+                  value={editingTask.nom || ''}
+                  onChange={(e) =>
+                    setEditingTask({ ...editingTask, nom: e.target.value })
+                  }
+                  placeholder="Entrez le nom de la tâche"
+                  required
                 />
               </div>
               <div>
-                <Label htmlFor="edit-subjectTitle">Titre du sujet</Label>
-                <Input
-                  id="edit-subjectTitle"
-                  value={editingTask.subjectTitle}
-                  onChange={(e) =>
-                    setEditingTask({ ...editingTask, subjectTitle: e.target.value })
+                <Label htmlFor="edit-priorite">Priorité *</Label>
+                <Select
+                  value={editingTask.priorite}
+                  onValueChange={(value) =>
+                    setEditingTask({ ...editingTask, priorite: value })
                   }
-                  placeholder="Entrez le titre du sujet"
-                />
+                >
+                  <SelectTrigger id="edit-priorite">
+                    <SelectValue placeholder="Sélectionnez une priorité" />
+                  </SelectTrigger>
+                  <SelectContent position="popper" className="!z-[100]">
+                    <SelectItem value={PRIORITIES.HIGH}>High</SelectItem>
+                    <SelectItem value={PRIORITIES.MID}>Mid</SelectItem>
+                    <SelectItem value={PRIORITIES.LOW}>Low</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="edit-dueDate">Date deadline</Label>
+                  <Label htmlFor="edit-date_debut">Date début</Label>
                   <Input
-                    id="edit-dueDate"
+                    id="edit-date_debut"
                     type="date"
-                    value={editingTask.dueDate}
+                    value={editingTask.date_debut || ''}
                     onChange={(e) =>
-                      setEditingTask({ ...editingTask, dueDate: e.target.value })
+                      setEditingTask({ ...editingTask, date_debut: e.target.value })
                     }
                   />
                 </div>
                 <div>
-                  <Label htmlFor="edit-priority">Priorité</Label>
-                  <Select
-                    value={editingTask.priority}
-                    onValueChange={(value) =>
-                      setEditingTask({ ...editingTask, priority: value })
+                  <Label htmlFor="edit-date_fin">Date fin</Label>
+                  <Input
+                    id="edit-date_fin"
+                    type="date"
+                    value={editingTask.date_fin || ''}
+                    onChange={(e) =>
+                      setEditingTask({ ...editingTask, date_fin: e.target.value })
                     }
-                  >
-                    <SelectTrigger id="edit-priority">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={PRIORITIES.HIGH}>High</SelectItem>
-                      <SelectItem value={PRIORITIES.MID}>Mid</SelectItem>
-                      <SelectItem value={PRIORITIES.LOW}>Low</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  />
                 </div>
               </div>
               <div>
-                <Label htmlFor="edit-status">Statut</Label>
+                <Label htmlFor="edit-projet_id">Projet *</Label>
                 <Select
-                  value={editingTask.status}
+                  value={editingTask.projet_id?.toString() || ''}
                   onValueChange={(value) =>
-                    setEditingTask({ ...editingTask, status: value })
+                    setEditingTask({ ...editingTask, projet_id: parseInt(value) })
                   }
                 >
-                  <SelectTrigger id="edit-status">
-                    <SelectValue />
+                  <SelectTrigger id="edit-projet_id">
+                    <SelectValue placeholder="Sélectionnez un projet" />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={STATUS_TYPES.TODO}>To Do</SelectItem>
-                    <SelectItem value={STATUS_TYPES.IN_PROGRESS}>In Progress</SelectItem>
-                    <SelectItem value={STATUS_TYPES.OVERDUE}>Overdue</SelectItem>
-                    <SelectItem value={STATUS_TYPES.DONE}>Done</SelectItem>
+                  <SelectContent position="popper" className="!z-[100]">
+                    {projects.length > 0 ? (
+                      projects.map((project) => (
+                        <SelectItem key={project.id} value={project.id.toString()}>
+                          {project.titre}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="" disabled>
+                        Aucun projet disponible
+                      </SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
               </div>

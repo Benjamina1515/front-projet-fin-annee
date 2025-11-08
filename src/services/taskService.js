@@ -1,34 +1,46 @@
 import api from '../lib/api';
 
 export const taskService = {
-  // Récupérer les tâches d'un projet
-  getProjectTasks: async (projectId) => {
-    const response = await api.get(`/projects/${projectId}/tasks`);
-    return response.data;
+  // Récupérer toutes les tâches de l'étudiant connecté
+  getStudentTasks: async () => {
+    const response = await api.get('/student/taches');
+    return response.data?.taches || [];
   },
 
-  // Créer une tâche
-  createTask: async (projectId, taskData) => {
-    const response = await api.post(`/projects/${projectId}/tasks`, taskData);
-    return response.data;
+  // Récupérer les statistiques des tâches
+  getStats: async () => {
+    const response = await api.get('/student/taches/stats');
+    return response.data?.stats || {};
+  },
+
+  // Récupérer une tâche spécifique
+  getTask: async (taskId) => {
+    const response = await api.get(`/student/taches/${taskId}`);
+    return response.data?.tache;
+  },
+
+  // Créer une nouvelle tâche
+  createTask: async (taskData) => {
+    const response = await api.post('/student/taches', taskData);
+    return response.data?.tache;
   },
 
   // Mettre à jour une tâche
-  updateTask: async (projectId, taskId, taskData) => {
-    const response = await api.put(`/projects/${projectId}/tasks/${taskId}`, taskData);
+  updateTask: async (taskId, taskData) => {
+    const response = await api.put(`/student/taches/${taskId}`, taskData);
+    return response.data?.tache;
+  },
+
+  // Supprimer une tâche
+  deleteTask: async (taskId) => {
+    const response = await api.delete(`/student/taches/${taskId}`);
     return response.data;
   },
 
-  // Soumettre une tâche (Étudiant)
-  submitTask: async (projectId, taskId, submissionData) => {
-    const response = await api.post(`/projects/${projectId}/tasks/${taskId}/submit`, submissionData);
-    return response.data;
-  },
-
-  // Évaluer une tâche (Professeur)
-  evaluateTask: async (projectId, taskId, evaluationData) => {
-    const response = await api.post(`/projects/${projectId}/tasks/${taskId}/evaluate`, evaluationData);
-    return response.data;
+  // Changer le statut d'une tâche
+  updateStatus: async (taskId, statut) => {
+    const response = await api.patch(`/student/taches/${taskId}/statut`, { statut });
+    return response.data?.tache;
   },
 };
 
