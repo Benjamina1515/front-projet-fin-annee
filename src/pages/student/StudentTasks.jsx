@@ -7,6 +7,9 @@ import {
   Calendar as CalendarIcon,
   Trash2,
   Edit2,
+  AlertCircle,
+  CheckCircle2,
+  Clock,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -181,8 +184,141 @@ const StudentTasks = () => {
     }
   };
 
+  // Organiser les tâches par statut
+  const tasksByStatus = {
+    [STATUS_TYPES.TODO]: tasks.filter((t) => t.status === STATUS_TYPES.TODO),
+    [STATUS_TYPES.IN_PROGRESS]: tasks.filter((t) => t.status === STATUS_TYPES.IN_PROGRESS),
+    [STATUS_TYPES.OVERDUE]: tasks.filter((t) => t.status === STATUS_TYPES.OVERDUE),
+    [STATUS_TYPES.DONE]: tasks.filter((t) => t.status === STATUS_TYPES.DONE),
+  };
+
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case STATUS_TYPES.IN_PROGRESS:
+        return <Clock className="h-4 w-4 text-orange-500" />;
+      case STATUS_TYPES.OVERDUE:
+        return <AlertCircle className="h-4 w-4 text-red-500" />;
+      case STATUS_TYPES.DONE:
+        return <CheckCircle2 className="h-4 w-4 text-green-500" />;
+      default:
+        return null;
+    }
+  };
+
+  // Composant TaskCard pour le Kanban
+  const TaskCard = ({ task }) => {
+    return (
+      <div className="group">
+        <Card
+          className={`mb-3 hover:shadow-md transition-shadow cursor-pointer ${getStatusColor(
+            task.status
+          )}`}
+        >
+          <CardContent className="p-4">
+            <div className="flex items-start justify-between gap-2 mb-2">
+              <div className="flex-1">
+                <h3 className="font-semibold text-sm text-gray-900 mb-1">{task.title}</h3>
+                <p className="text-xs text-gray-600 mb-3 line-clamp-2">
+                  {task.description}
+                </p>
+              </div>
+              <div className="flex items-center gap-1">
+                <button
+                  className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-100 rounded"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setEditingTask({ ...task });
+                  }}
+                >
+                  <Edit2 className="h-3.5 w-3.5 text-gray-500" />
+                </button>
+                <button
+                  className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-50 rounded"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDeleteTask(task.id);
+                  }}
+                >
+                  <Trash2 className="h-3.5 w-3.5 text-red-500" />
+                </button>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 mb-3">
+              <CalendarIcon className="h-3.5 w-3.5 text-gray-400" />
+              <span className="text-xs text-gray-500">
+                {formatDate(task.dueDate)}
+              </span>
+            </div>
+
+            <div className="flex items-center">
+              <Badge
+                className={`${PRIORITY_COLORS[task.priority]} border font-medium text-xs`}
+              >
+                {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
+              </Badge>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  };
+
+  // Composant Column pour le Kanban
+  const Column = ({ status, tasks: columnTasks }) => {
+    return (
+      <div className="min-w-[300px] w-80 flex-shrink-0 flex flex-col bg-gray-50 rounded-lg p-4 h-full">
+        <div className="flex items-center justify-between mb-4 flex-shrink-0">
+          <div className="flex items-center gap-2">
+            <h3 className="font-semibold text-gray-900">{getStatusLabel(status)}</h3>
+            <Badge
+              variant="secondary"
+              className={`text-xs ${
+                status === STATUS_TYPES.IN_PROGRESS
+                  ? 'bg-orange-100 text-orange-700'
+                  : status === STATUS_TYPES.OVERDUE
+                  ? 'bg-red-100 text-red-700'
+                  : status === STATUS_TYPES.DONE
+                  ? 'bg-green-100 text-green-700'
+                  : 'bg-gray-100 text-gray-700'
+              }`}
+            >
+              {columnTasks.length}
+            </Badge>
+          </div>
+          {getStatusIcon(status)}
+        </div>
+
+        <Button
+          variant="ghost"
+          className="mb-4 text-teal-600 hover:text-teal-700 hover:bg-teal-50 flex-shrink-0 justify-start"
+          onClick={() => {
+            setNewTask({ ...newTask, status });
+            setIsNewTaskOpen(true);
+          }}
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Ajouter Tâche
+        </Button>
+
+        <div className="flex-1 overflow-y-auto pr-2 min-h-0">
+          <div className="space-y-0">
+            {columnTasks.map((task) => (
+              <TaskCard key={task.id} task={task} />
+            ))}
+            {columnTasks.length === 0 && (
+              <div className="text-center py-8 text-gray-400 text-xs">
+                Aucune tâche
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50 overflow-x-hidden">
+    <div className="min-h-screen container bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-8 py-6">
         <div className="flex items-center justify-between mb-4">
@@ -248,69 +384,151 @@ const StudentTasks = () => {
       </div>
 
       {/* Content */}
-      <div className="p-8">
+      <div className="py-8" >
         {viewMode === 'board' && (
-          <div className="text-center py-12 text-gray-500">
-            <LayoutGrid className="h-16 w-16 mx-auto mb-4 text-gray-400" />
-            <p>Board view coming soon...</p>
+          <div 
+            className="border-2 container border-black rounded-lg"
+            // style={{ 
+            //   width: '100%', 
+            //   maxWidth: '100%',
+            //   boxSizing: 'border-box'
+            // }}
+          >
+            <div 
+              className="flex bg-white w-full"
+              // style={{ 
+              //   height: 'calc(100vh - 320px)',
+              //   maxHeight: 'calc(100vh - 320px)',
+              //   width: '100%',
+              //   maxWidth: '100%',
+              //   boxSizing: 'border-box'
+              // }}
+            >
+              <div 
+                className="flex flex-nowrap gap-4 h-full p-4 overflow-x-auto w-full" 
+                style={{ 
+                  minWidth: 'max-content', 
+                  width: 'max-content',
+                  boxSizing: 'border-box'
+                }}
+              >
+                <Column status={STATUS_TYPES.TODO} tasks={tasksByStatus[STATUS_TYPES.TODO]} />
+                <Column status={STATUS_TYPES.TODO} tasks={tasksByStatus[STATUS_TYPES.TODO]} />
+                <Column
+                  status={STATUS_TYPES.IN_PROGRESS}
+                  tasks={tasksByStatus[STATUS_TYPES.IN_PROGRESS]}
+                />
+                <Column
+                  status={STATUS_TYPES.OVERDUE}
+                  tasks={tasksByStatus[STATUS_TYPES.OVERDUE]}
+                />
+                <Column status={STATUS_TYPES.DONE} tasks={tasksByStatus[STATUS_TYPES.DONE]} />
+              </div>
+            </div>
           </div>
         )}
 
         {viewMode === 'list' && (
-          <div className="space-y-3">
-            {tasks.map((task) => (
-              <Card key={task.id} className="hover:shadow-md transition-shadow">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="font-semibold text-gray-900">{task.title}</h3>
-                        <Badge
-                          className={`${PRIORITY_COLORS[task.priority]} border font-medium`}
-                        >
-                          {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
-                        </Badge>
-                        <Badge
-                          variant="outline"
-                          className={
-                            task.status === STATUS_TYPES.IN_PROGRESS
-                              ? 'border-orange-300 text-orange-700'
-                              : task.status === STATUS_TYPES.OVERDUE
-                              ? 'border-red-300 text-red-700'
-                              : task.status === STATUS_TYPES.DONE
-                              ? 'border-green-300 text-green-700'
-                              : ''
-                          }
-                        >
-                          {getStatusLabel(task.status)}
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-gray-600 mb-2">{task.description}</p>
-                      <div className="flex items-center gap-2 text-xs text-gray-500">
-                        <CalendarIcon className="h-3.5 w-3.5" />
-                        <span>Due Date {formatDate(task.dueDate)}</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setEditingTask({ ...task })}
-                      >
-                        <Edit2 className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDeleteTask(task.id)}
-                      >
-                        <Trash2 className="h-4 w-4 text-red-500" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Titre
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Description
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Statut
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Priorité
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Date d'échéance
+                    </th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {tasks.length === 0 ? (
+                    <tr>
+                      <td colSpan="6" className="px-6 py-12 text-center text-gray-500">
+                        Aucune tâche trouvée
+                      </td>
+                    </tr>
+                  ) : (
+                    tasks.map((task) => (
+                      <tr key={task.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">
+                            {task.title}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-sm text-gray-600 max-w-md truncate">
+                            {task.description || '-'}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <Badge
+                            variant="outline"
+                            className={
+                              task.status === STATUS_TYPES.IN_PROGRESS
+                                ? 'border-orange-300 text-orange-700 bg-orange-50'
+                                : task.status === STATUS_TYPES.OVERDUE
+                                ? 'border-red-300 text-red-700 bg-red-50'
+                                : task.status === STATUS_TYPES.DONE
+                                ? 'border-green-300 text-green-700 bg-green-50'
+                                : 'border-gray-300 text-gray-700 bg-gray-50'
+                            }
+                          >
+                            {getStatusLabel(task.status)}
+                          </Badge>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <Badge
+                            className={`${PRIORITY_COLORS[task.priority]} border font-medium text-xs`}
+                          >
+                            {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
+                          </Badge>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <CalendarIcon className="h-4 w-4 text-gray-400" />
+                            <span>{formatDate(task.dueDate)}</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <div className="flex items-center justify-end gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setEditingTask({ ...task })}
+                              className="h-8 w-8 p-0"
+                            >
+                              <Edit2 className="h-4 w-4 text-gray-600 hover:text-gray-900" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteTask(task.id)}
+                              className="h-8 w-8 p-0"
+                            >
+                              <Trash2 className="h-4 w-4 text-red-500 hover:text-red-700" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 
@@ -323,7 +541,7 @@ const StudentTasks = () => {
       </div>
 
       {/* New Task Dialog */}
-      <Dialog open={isNewTaskOpen} onOpenChange={setIsNewTaskOpen}>
+      {/* <Dialog open={isNewTaskOpen} onOpenChange={setIsNewTaskOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>New Task</DialogTitle>
@@ -388,10 +606,10 @@ const StudentTasks = () => {
             </Button>
           </DialogFooter>
         </DialogContent>
-      </Dialog>
+      </Dialog> */}
 
       {/* Edit Task Dialog */}
-      <Dialog open={!!editingTask} onOpenChange={(open) => !open && setEditingTask(null)}>
+      {/* <Dialog open={!!editingTask} onOpenChange={(open) => !open && setEditingTask(null)}>
         {editingTask && (
           <DialogContent className="max-w-2xl">
             <DialogHeader>
@@ -483,7 +701,7 @@ const StudentTasks = () => {
             </DialogFooter>
           </DialogContent>
         )}
-      </Dialog>
+      </Dialog> */}
     </div>
   );
 };

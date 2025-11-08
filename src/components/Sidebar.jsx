@@ -65,8 +65,8 @@ const Sidebar = () => {
   const links = isAdmin ? adminLinks : isProfessor ? professorLinks : studentLinks;
 
   return (
-    <aside className="w-64 bg-gray-50 min-h-screen border-r">
-      <div className="p-4">
+    <aside className="w-64 min-w-[16rem] max-w-[16rem] flex-shrink-0 bg-gray-50 min-h-screen border-r">
+      <div className="p-4 h-full overflow-y-auto">
         <nav className="space-y-2">
           {links.map((link) => {
             const Icon = link.icon;
