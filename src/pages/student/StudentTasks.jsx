@@ -342,19 +342,6 @@ const StudentTasks = () => {
         {/* View Toggle */}
         <div className="flex items-center gap-2">
           <Button
-            variant={viewMode === 'board' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setViewMode('board')}
-            className={
-              viewMode === 'board'
-                ? 'bg-gray-900 text-white hover:bg-gray-800'
-                : 'bg-white'
-            }
-          >
-            <LayoutGrid className="h-4 w-4 mr-2" />
-            Board
-          </Button>
-          <Button
             variant={viewMode === 'list' ? 'default' : 'outline'}
             size="sm"
             onClick={() => setViewMode('list')}
@@ -366,6 +353,19 @@ const StudentTasks = () => {
           >
             <List className="h-4 w-4 mr-2" />
             List
+          </Button>
+          <Button
+            variant={viewMode === 'board' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setViewMode('board')}
+            className={
+              viewMode === 'board'
+                ? 'bg-gray-900 text-white hover:bg-gray-800'
+                : 'bg-white'
+            }
+          >
+            <LayoutGrid className="h-4 w-4 mr-2" />
+            Board
           </Button>
           <Button
             variant={viewMode === 'calendar' ? 'default' : 'outline'}
@@ -388,21 +388,9 @@ const StudentTasks = () => {
         {viewMode === 'board' && (
           <div 
             className="border-2 container border-black rounded-lg"
-            // style={{ 
-            //   width: '100%', 
-            //   maxWidth: '100%',
-            //   boxSizing: 'border-box'
-            // }}
           >
             <div 
               className="flex bg-white w-full"
-              // style={{ 
-              //   height: 'calc(100vh - 320px)',
-              //   maxHeight: 'calc(100vh - 320px)',
-              //   width: '100%',
-              //   maxWidth: '100%',
-              //   boxSizing: 'border-box'
-              // }}
             >
               <div 
                 className="flex flex-nowrap gap-4 h-full p-4 overflow-x-auto w-full" 
@@ -412,7 +400,6 @@ const StudentTasks = () => {
                   boxSizing: 'border-box'
                 }}
               >
-                <Column status={STATUS_TYPES.TODO} tasks={tasksByStatus[STATUS_TYPES.TODO]} />
                 <Column status={STATUS_TYPES.TODO} tasks={tasksByStatus[STATUS_TYPES.TODO]} />
                 <Column
                   status={STATUS_TYPES.IN_PROGRESS}
@@ -541,7 +528,7 @@ const StudentTasks = () => {
       </div>
 
       {/* New Task Dialog */}
-      {/* <Dialog open={isNewTaskOpen} onOpenChange={setIsNewTaskOpen}>
+      <Dialog open={isNewTaskOpen} onOpenChange={setIsNewTaskOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>New Task</DialogTitle>
@@ -606,10 +593,10 @@ const StudentTasks = () => {
             </Button>
           </DialogFooter>
         </DialogContent>
-      </Dialog> */}
+      </Dialog>
 
       {/* Edit Task Dialog */}
-      {/* <Dialog open={!!editingTask} onOpenChange={(open) => !open && setEditingTask(null)}>
+      <Dialog open={!!editingTask} onOpenChange={(open) => !open && setEditingTask(null)}>
         {editingTask && (
           <DialogContent className="max-w-2xl">
             <DialogHeader>
@@ -701,7 +688,7 @@ const StudentTasks = () => {
             </DialogFooter>
           </DialogContent>
         )}
-      </Dialog> */}
+      </Dialog>
     </div>
   );
 };
