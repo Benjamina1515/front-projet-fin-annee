@@ -46,6 +46,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 // Types de statut
 const STATUS_TYPES = {
@@ -260,15 +261,28 @@ const StudentTasks = () => {
   const getStatusLabel = (status) => {
     switch (status) {
       case STATUS_TYPES.TODO:
-        return 'To Do';
+        return 'À faire';
       case STATUS_TYPES.IN_PROGRESS:
-        return 'In Progress';
+        return 'En cours';
       case STATUS_TYPES.OVERDUE:
-        return 'Overdue';
+        return 'En retard';
       case STATUS_TYPES.DONE:
-        return 'Done';
+        return 'Terminée';
       default:
         return status;
+    }
+  };
+
+  const getPriorityLabel = (priority) => {
+    switch (priority) {
+      case PRIORITIES.HIGH:
+        return 'Haute';
+      case PRIORITIES.MID:
+        return 'Moyenne';
+      case PRIORITIES.LOW:
+        return 'Basse';
+      default:
+        return priority;
     }
   };
 
@@ -281,10 +295,8 @@ const StudentTasks = () => {
   // Filtrer les tâches
   const filteredTasks = useMemo(() => {
     return tasks.filter((task) => {
-      // Filtre par statut (par défaut exclure "done")
-      if (statusFilter === 'all') {
-        if (task.statut === STATUS_TYPES.DONE) return false;
-      } else if (statusFilter !== task.statut) {
+      // Filtre par statut: 'all' inclut désormais tous les statuts
+      if (statusFilter !== 'all' && statusFilter !== task.statut) {
         return false;
       }
 
@@ -389,7 +401,7 @@ const StudentTasks = () => {
               <Badge
                 className={`${PRIORITY_COLORS[task.priorite]} border font-medium text-xs`}
               >
-                {task.priorite.charAt(0).toUpperCase() + task.priorite.slice(1)}
+                {getPriorityLabel(task.priorite)}
               </Badge>
             </div>
           </CardContent>
@@ -401,13 +413,13 @@ const StudentTasks = () => {
   // Composant Column pour le Kanban
   const Column = ({ status, tasks: columnTasks }) => {
     return (
-      <div className="min-w-[300px] w-80 flex-shrink-0 flex flex-col bg-gray-50 rounded-lg p-4 h-full">
-        <div className="flex items-center justify-between mb-4 flex-shrink-0">
+      <div className="flex-1 min-w-[280px] flex flex-col">
+        <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <h3 className="font-semibold text-gray-900">{getStatusLabel(status)}</h3>
+            <h2 className="font-semibold text-gray-900">{getStatusLabel(status)}</h2>
             <Badge
               variant="secondary"
-              className={`text-xs ${
+              className={`${
                 status === STATUS_TYPES.IN_PROGRESS
                   ? 'bg-orange-100 text-orange-700'
                   : status === STATUS_TYPES.OVERDUE
@@ -423,30 +435,30 @@ const StudentTasks = () => {
           {getStatusIcon(status)}
         </div>
 
+        <ScrollArea className="flex-1 pr-2 min-h-[200px]">
+          <div className="space-y-0">
+            {columnTasks.map((task) => (
+              <TaskCard key={task.id} task={task} />
+            ))}
+            {columnTasks.length === 0 && (
+              <div className="text-center py-8 text-gray-400 text-sm">
+                Aucune tâche
+              </div>
+            )}
+          </div>
+        </ScrollArea>
+
         <Button
           variant="ghost"
-          className="mb-4 text-teal-600 hover:text-teal-700 hover:bg-teal-50 flex-shrink-0 justify-start"
+          className="w-full mt-3 text-gray-600 hover:text-gray-900 hover:bg-gray-50"
           onClick={() => {
             setNewTask({ ...newTask, statut: status });
             setIsNewTaskOpen(true);
           }}
         >
           <Plus className="h-4 w-4 mr-2" />
-          Ajouter Tâche
+          Nouvelle tâche
         </Button>
-
-        <div className="flex-1 overflow-y-auto pr-2 min-h-0">
-          <div className="space-y-0">
-            {columnTasks.map((task) => (
-              <TaskCard key={task.id} task={task} />
-            ))}
-            {columnTasks.length === 0 && (
-              <div className="text-center py-8 text-gray-400 text-xs">
-                Aucune tâche
-              </div>
-            )}
-          </div>
-        </div>
       </div>
     );
   };
@@ -457,9 +469,9 @@ const StudentTasks = () => {
       <div className="bg-white border-b border-gray-200 px-8 py-6">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-1">Checklist</h1>
+            <h1 className="text-2xl font-bold text-gray-900 mb-1">Tâches</h1>
             <p className="text-sm text-gray-600">
-              Keep track of all your tasks for this event
+              Suivez toutes vos tâches pour cet événement
             </p>
           </div>
           <div className="flex items-center gap-4">
@@ -486,7 +498,7 @@ const StudentTasks = () => {
             }
           >
             <List className="h-4 w-4 mr-2" />
-            List
+            Liste
           </Button>
           <Button
             variant={viewMode === 'board' ? 'default' : 'outline'}
@@ -499,7 +511,7 @@ const StudentTasks = () => {
             }
           >
             <LayoutGrid className="h-4 w-4 mr-2" />
-            Board
+            Tableau
           </Button>
           <Button
             variant={viewMode === 'calendar' ? 'default' : 'outline'}
@@ -512,7 +524,7 @@ const StudentTasks = () => {
             }
           >
             <Calendar className="h-4 w-4 mr-2" />
-            Calendar
+            Calendrier
           </Button>
         </div>
       </div>
@@ -520,7 +532,7 @@ const StudentTasks = () => {
       {/* Content */}
       <div className="px-8 py-8" >
         {/* Statistiques */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+        {/* <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
           <div className="bg-white rounded-lg shadow-md p-4 border border-gray-200">
             <div className="flex items-center justify-between">
               <div>
@@ -561,7 +573,7 @@ const StudentTasks = () => {
               </div>
             </div>
           </div>
-        </div>
+        </div> */}
 
         {/* Filtres */}
         <div className="mb-6 bg-white rounded-lg border border-gray-200 p-4">
@@ -594,11 +606,11 @@ const StudentTasks = () => {
                   <SelectValue placeholder="Filtrer par statut" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Tous (sauf terminées)</SelectItem>
-                  <SelectItem value={STATUS_TYPES.TODO}>To Do</SelectItem>
-                  <SelectItem value={STATUS_TYPES.IN_PROGRESS}>In Progress</SelectItem>
-                  <SelectItem value={STATUS_TYPES.OVERDUE}>Overdue</SelectItem>
-                  <SelectItem value={STATUS_TYPES.DONE}>Done</SelectItem>
+                  <SelectItem value="all">Tous (Sauf Terminées)</SelectItem>
+                  <SelectItem value={STATUS_TYPES.TODO}>À faire</SelectItem>
+                  <SelectItem value={STATUS_TYPES.IN_PROGRESS}>En cours</SelectItem>
+                  <SelectItem value={STATUS_TYPES.OVERDUE}>En retard</SelectItem>
+                  <SelectItem value={STATUS_TYPES.DONE}>Terminée</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -675,20 +687,9 @@ const StudentTasks = () => {
         </div>
 
         {viewMode === 'board' && (
-          <div 
-            className="border-2 container border-black rounded-lg"
-          >
-            <div 
-              className="flex bg-white w-full"
-            >
-              <div 
-                className="flex flex-nowrap gap-4 h-full p-4 overflow-x-auto w-full" 
-                style={{ 
-                  minWidth: 'max-content', 
-                  width: 'max-content',
-                  boxSizing: 'border-box'
-                }}
-              >
+          <div className="border-2 bg-white rounded-lg overflow-x-auto">
+            <div className="p-4">
+              <div className="flex flex-nowrap gap-4" style={{ minWidth: 'max-content' }}>
                 <Column status={STATUS_TYPES.TODO} tasks={tasksByStatus[STATUS_TYPES.TODO]} />
                 <Column
                   status={STATUS_TYPES.IN_PROGRESS}
@@ -789,7 +790,7 @@ const StudentTasks = () => {
                           <Badge
                             className={`${PRIORITY_COLORS[task.priorite]} border font-medium text-xs pointer-events-none hover:bg-transparent`}
                           >
-                            {task.priorite.charAt(0).toUpperCase() + task.priorite.slice(1)}
+                            {getPriorityLabel(task.priorite)}
                           </Badge>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -811,18 +812,18 @@ const StudentTasks = () => {
                                 <ChevronDown className="h-3 w-3 ml-1" />
                               </Badge>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="z-[100]">
+                            <DropdownMenuContent align="end" className="z-9999">
                               <DropdownMenuItem onClick={() => handleStatusChange(task.id, STATUS_TYPES.TODO)}>
-                                To Do
+                                À faire
                               </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => handleStatusChange(task.id, STATUS_TYPES.IN_PROGRESS)}>
-                                In Progress
+                                En cours
                               </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => handleStatusChange(task.id, STATUS_TYPES.OVERDUE)}>
-                                Overdue
+                                En retard
                               </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => handleStatusChange(task.id, STATUS_TYPES.DONE)}>
-                                Done
+                                Terminée
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -834,7 +835,7 @@ const StudentTasks = () => {
                                 <MoreVertical className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
+                            <DropdownMenuContent align="end" className="z-9999">
                               <DropdownMenuItem onClick={() => setEditingTask({ ...task })}>
                                 <Edit2 className="h-4 w-4 mr-2" />
                                 Modifier
@@ -861,7 +862,7 @@ const StudentTasks = () => {
         {viewMode === 'calendar' && (
           <div className="text-center py-12 text-gray-500">
             <Calendar className="h-16 w-16 mx-auto mb-4 text-gray-400" />
-            <p>Calendar view coming soon...</p>
+            <p>Vue calendrier bientôt disponible...</p>
           </div>
         )}
       </div>
@@ -895,10 +896,10 @@ const StudentTasks = () => {
                 <SelectTrigger id="priorite">
                   <SelectValue placeholder="Sélectionnez une priorité" />
                 </SelectTrigger>
-                <SelectContent position="popper" className="!z-[100]">
-                  <SelectItem value={PRIORITIES.HIGH}>High</SelectItem>
-                  <SelectItem value={PRIORITIES.MID}>Mid</SelectItem>
-                  <SelectItem value={PRIORITIES.LOW}>Low</SelectItem>
+                <SelectContent position="popper" className="z-9999">
+                  <SelectItem value={PRIORITIES.HIGH}>Haute</SelectItem>
+                  <SelectItem value={PRIORITIES.MID}>Moyenne</SelectItem>
+                  <SelectItem value={PRIORITIES.LOW}>Basse</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -931,7 +932,7 @@ const StudentTasks = () => {
                 <SelectTrigger id="projet_id">
                   <SelectValue placeholder="Sélectionnez un projet" />
                 </SelectTrigger>
-                <SelectContent position="popper" className="!z-[100]">
+                <SelectContent position="popper" className="z-9999">
                   {projects.length > 0 ? (
                     projects.map((project) => (
                       <SelectItem key={project.id} value={project.id.toString()}>
@@ -992,10 +993,10 @@ const StudentTasks = () => {
                   <SelectTrigger id="edit-priorite">
                     <SelectValue placeholder="Sélectionnez une priorité" />
                   </SelectTrigger>
-                  <SelectContent position="popper" className="!z-[100]">
-                    <SelectItem value={PRIORITIES.HIGH}>High</SelectItem>
-                    <SelectItem value={PRIORITIES.MID}>Mid</SelectItem>
-                    <SelectItem value={PRIORITIES.LOW}>Low</SelectItem>
+                  <SelectContent position="popper" className="z-9999">
+                    <SelectItem value={PRIORITIES.HIGH}>Haute</SelectItem>
+                    <SelectItem value={PRIORITIES.MID}>Moyenne</SelectItem>
+                    <SelectItem value={PRIORITIES.LOW}>Basse</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -1034,7 +1035,7 @@ const StudentTasks = () => {
                   <SelectTrigger id="edit-projet_id">
                     <SelectValue placeholder="Sélectionnez un projet" />
                   </SelectTrigger>
-                  <SelectContent position="popper" className="!z-[100]">
+                  <SelectContent position="popper" className="z-9999">
                     {projects.length > 0 ? (
                       projects.map((project) => (
                         <SelectItem key={project.id} value={project.id.toString()}>
