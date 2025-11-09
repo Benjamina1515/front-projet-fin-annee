@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, forwardRef } from 'react';
 import {
   Plus,
   LayoutGrid,
@@ -17,6 +17,22 @@ import {
   ChevronDown,
   Loader2,
 } from 'lucide-react';
+import {
+  DndContext,
+  closestCorners,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  DragOverlay,
+  useDroppable,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { taskService } from '../../services/taskService';
 import { projectService } from '../../services/projectService';
 import { useAuth } from '../../contexts/AuthContext';
@@ -73,7 +89,7 @@ const PRIORITY_COLORS = {
 };
 
 const StudentTasks = () => {
-  const { user } = useAuth();
+  const { user: _user } = useAuth();
   const [tasks, setTasks] = useState([]);
   const [projects, setProjects] = useState([]);
   const [stats, setStats] = useState({
@@ -89,6 +105,7 @@ const StudentTasks = () => {
   const [editingTask, setEditingTask] = useState(null);
   const [isCreatingTask, setIsCreatingTask] = useState(false);
   const [isUpdatingTask, setIsUpdatingTask] = useState(false);
+  const [activeTask, setActiveTask] = useState(null);
   const [newTask, setNewTask] = useState({
     nom: '',
     priorite: PRIORITIES.MID,
@@ -101,6 +118,15 @@ const StudentTasks = () => {
   const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'todo', 'in_progress', 'overdue', 'done'
   const [searchQuery, setSearchQuery] = useState('');
   const [projectFilter, setProjectFilter] = useState('all');
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 6 },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 150, tolerance: 5 },
+    })
+  );
 
   // Charger les tâches et projets au montage
   useEffect(() => {
@@ -229,18 +255,38 @@ const StudentTasks = () => {
   };
 
   const handleStatusChange = async (taskId, newStatus) => {
+    const previousTasks = tasks.map((task) => ({ ...task }));
+    const previousStats = { ...stats };
+    const targetTask = tasks.find((task) => task.id === taskId);
+
+    if (!targetTask || targetTask.statut === newStatus) {
+      return;
+    }
+
+    setTasks((prev) =>
+      prev.map((task) =>
+        task.id === taskId
+          ? {
+              ...task,
+              statut: newStatus,
+            }
+          : task
+      )
+    );
+
     try {
       const updatedTask = await taskService.updateStatus(taskId, newStatus);
       setTasks((prev) =>
         prev.map((task) => (task.id === updatedTask.id ? updatedTask : task))
       );
-      
-      // Recharger les statistiques
+
       const statsData = await taskService.getStats();
       setStats(statsData);
       toast.success('Statut de la tâche mis à jour avec succès');
     } catch (error) {
       console.error('Erreur lors de la mise à jour du statut:', error);
+      setTasks(previousTasks);
+      setStats(previousStats);
       toast.error(error.response?.data?.message || 'Erreur lors de la mise à jour du statut');
     }
   };
@@ -340,6 +386,53 @@ const StudentTasks = () => {
     };
   }, [filteredTasks]);
 
+  const handleDragStart = (event) => {
+    const draggedTask = event.active.data.current?.task;
+    if (draggedTask) {
+      setActiveTask(draggedTask);
+    }
+  };
+
+  const handleDragCancel = () => {
+    setActiveTask(null);
+  };
+
+  const handleDragEnd = (event) => {
+    const { active, over } = event;
+
+    if (!active) {
+      setActiveTask(null);
+      return;
+    }
+
+    const activeData = active.data.current;
+    const overData = over?.data.current;
+
+    setActiveTask(null);
+
+    if (!activeData) {
+      return;
+    }
+
+    let destinationStatus = activeData.status;
+
+    if (overData?.type === 'task') {
+      destinationStatus = overData.status;
+    } else if (overData?.type === 'column') {
+      destinationStatus = overData.status;
+    } else if (
+      over &&
+      typeof over.id === 'string' &&
+      Object.values(STATUS_TYPES).includes(over.id)
+    ) {
+      destinationStatus = over.id;
+    }
+
+    if (destinationStatus && destinationStatus !== activeData.status) {
+      handleStatusChange(activeData.taskId, destinationStatus);
+    }
+  };
+
   const getStatusIcon = (status) => {
     switch (status) {
       case STATUS_TYPES.IN_PROGRESS:
@@ -401,13 +494,36 @@ const StudentTasks = () => {
   }
 
   // Composant TaskCard pour le Kanban
-  const TaskCard = ({ task }) => {
-    return (
-      <div className="group">
+  const TaskCard = forwardRef(
+    (
+      {
+        task,
+        style,
+        listeners,
+        attributes,
+        isDragging = false,
+        isOverlay = false,
+      },
+      ref
+    ) => {
+      if (!task) {
+        return null;
+      }
+
+      const cardStyle = {
+        ...(style ?? {}),
+        pointerEvents: isOverlay ? 'none' : style?.pointerEvents,
+      };
+
+      return (
         <Card
-          className={`mb-3 hover:shadow-md transition-shadow cursor-pointer ${getStatusColor(
-            task.statut
-          )}`}
+          ref={ref}
+          style={cardStyle}
+          className={`group mb-3 transition-shadow ${getStatusColor(task.statut)} ${
+            isOverlay ? 'opacity-90 shadow-lg' : 'hover:shadow-md'
+          } ${isDragging && !isOverlay ? 'cursor-grabbing shadow-lg' : 'cursor-grab'}`}
+          {...(attributes ?? {})}
+          {...(listeners ?? {})}
         >
           <CardContent className="p-4">
             <div className="flex items-start justify-between gap-2 mb-2">
@@ -428,8 +544,11 @@ const StudentTasks = () => {
                   className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-100 rounded"
                   onClick={(e) => {
                     e.stopPropagation();
-                    setEditingTask({ ...task });
+                    if (!isOverlay) {
+                      setEditingTask({ ...task });
+                    }
                   }}
+                  disabled={isOverlay}
                 >
                   <Edit2 className="h-3.5 w-3.5 text-gray-500" />
                 </button>
@@ -437,14 +556,16 @@ const StudentTasks = () => {
                   className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-50 rounded"
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleDeleteTask(task.id);
+                    if (!isOverlay) {
+                      handleDeleteTask(task.id);
+                    }
                   }}
+                  disabled={isOverlay}
                 >
                   <Trash2 className="h-3.5 w-3.5 text-red-500" />
                 </button>
               </div>
             </div>
-
 
             <div className="flex items-center gap-2">
               <Badge
@@ -455,12 +576,46 @@ const StudentTasks = () => {
             </div>
           </CardContent>
         </Card>
-      </div>
+      );
+    }
+  );
+  TaskCard.displayName = 'TaskCard';
+
+  const SortableTaskCard = ({ task }) => {
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+      id: task.id.toString(),
+      data: {
+        type: 'task',
+        taskId: task.id,
+        status: task.statut,
+        task,
+      },
+    });
+
+    const style = {
+      transform: CSS.Transform.toString(transform),
+      transition,
+    };
+
+    return (
+      <TaskCard
+        ref={setNodeRef}
+        task={task}
+        style={style}
+        attributes={attributes}
+        listeners={listeners}
+        isDragging={isDragging}
+      />
     );
   };
 
   // Composant Column pour le Kanban
   const Column = ({ status, tasks: columnTasks }) => {
+    const { setNodeRef, isOver } = useDroppable({
+      id: status,
+      data: { type: 'column', status },
+    });
+
     return (
       <div className="flex-1 min-w-[280px] flex flex-col">
         <div className="flex items-center justify-between mb-4">
@@ -485,12 +640,22 @@ const StudentTasks = () => {
         </div>
 
         <ScrollArea className="flex-1 pr-2 min-h-[200px]">
-          <div className="space-y-0">
-            {columnTasks.map((task) => (
-              <TaskCard key={task.id} task={task} />
-            ))}
+          <div
+            ref={setNodeRef}
+            className={`space-y-0 min-h-[220px] rounded-md px-1 pb-1 transition-colors ${
+              isOver ? 'bg-teal-50/80 ring-1 ring-teal-200' : ''
+            }`}
+          >
+            <SortableContext
+              items={columnTasks.map((task) => task.id.toString())}
+              strategy={verticalListSortingStrategy}
+            >
+              {columnTasks.map((task) => (
+                <SortableTaskCard key={task.id} task={task} />
+              ))}
+            </SortableContext>
             {columnTasks.length === 0 && (
-              <div className="text-center py-8 text-gray-400 text-sm">
+              <div className="text-center py-10 text-gray-400 text-sm border border-dashed border-gray-200 rounded-md">
                 Aucune tâche
               </div>
             )}
@@ -736,22 +901,33 @@ const StudentTasks = () => {
         </div>
 
         {viewMode === 'board' && (
-          <div className="border-2 bg-white rounded-lg overflow-x-auto">
-            <div className="p-4">
-              <div className="flex flex-nowrap gap-4" style={{ minWidth: 'max-content' }}>
-                <Column status={STATUS_TYPES.TODO} tasks={tasksByStatus[STATUS_TYPES.TODO]} />
-                <Column
-                  status={STATUS_TYPES.IN_PROGRESS}
-                  tasks={tasksByStatus[STATUS_TYPES.IN_PROGRESS]}
-                />
-                <Column
-                  status={STATUS_TYPES.OVERDUE}
-                  tasks={tasksByStatus[STATUS_TYPES.OVERDUE]}
-                />
-                <Column status={STATUS_TYPES.DONE} tasks={tasksByStatus[STATUS_TYPES.DONE]} />
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCorners}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+            onDragCancel={handleDragCancel}
+          >
+            <div className="border-2 bg-white rounded-lg overflow-x-auto">
+              <div className="p-4">
+                <div className="flex flex-nowrap gap-4" style={{ minWidth: 'max-content' }}>
+                  <Column status={STATUS_TYPES.TODO} tasks={tasksByStatus[STATUS_TYPES.TODO]} />
+                  <Column
+                    status={STATUS_TYPES.IN_PROGRESS}
+                    tasks={tasksByStatus[STATUS_TYPES.IN_PROGRESS]}
+                  />
+                  <Column
+                    status={STATUS_TYPES.OVERDUE}
+                    tasks={tasksByStatus[STATUS_TYPES.OVERDUE]}
+                  />
+                  <Column status={STATUS_TYPES.DONE} tasks={tasksByStatus[STATUS_TYPES.DONE]} />
+                </div>
               </div>
             </div>
-          </div>
+            <DragOverlay dropAnimation={null}>
+              {activeTask ? <TaskCard task={activeTask} isOverlay /> : null}
+            </DragOverlay>
+          </DndContext>
         )}
 
         {viewMode === 'list' && (
