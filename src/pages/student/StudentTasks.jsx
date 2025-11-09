@@ -15,6 +15,7 @@ import {
   Filter,
   X,
   ChevronDown,
+  Loader2,
 } from 'lucide-react';
 import { taskService } from '../../services/taskService';
 import { projectService } from '../../services/projectService';
@@ -47,6 +48,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Skeleton } from '@/components/ui/skeleton';
 
 // Types de statut
 const STATUS_TYPES = {
@@ -85,6 +87,8 @@ const StudentTasks = () => {
   const [viewMode, setViewMode] = useState('list'); // board, list, calendar
   const [isNewTaskOpen, setIsNewTaskOpen] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
+  const [isCreatingTask, setIsCreatingTask] = useState(false);
+  const [isUpdatingTask, setIsUpdatingTask] = useState(false);
   const [newTask, setNewTask] = useState({
     nom: '',
     priorite: PRIORITIES.MID,
@@ -141,6 +145,7 @@ const StudentTasks = () => {
     }
 
     try {
+      setIsCreatingTask(true);
       const createdTask = await taskService.createTask({
         nom: newTask.nom,
         priorite: newTask.priorite,
@@ -167,6 +172,8 @@ const StudentTasks = () => {
     } catch (error) {
       console.error('Erreur lors de la création de la tâche:', error);
       toast.error(error.response?.data?.message || 'Erreur lors de la création de la tâche');
+    } finally {
+      setIsCreatingTask(false);
     }
   };
 
@@ -177,6 +184,7 @@ const StudentTasks = () => {
     }
 
     try {
+      setIsUpdatingTask(true);
       const updatedTask = await taskService.updateTask(editingTask.id, {
         nom: editingTask.nom,
         priorite: editingTask.priorite,
@@ -198,6 +206,8 @@ const StudentTasks = () => {
     } catch (error) {
       console.error('Erreur lors de la mise à jour de la tâche:', error);
       toast.error(error.response?.data?.message || 'Erreur lors de la mise à jour de la tâche');
+    } finally {
+      setIsUpdatingTask(false);
     }
   };
 
@@ -345,8 +355,47 @@ const StudentTasks = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="container px-8 py-8">
+        {/* Header skeleton */}
+        <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
+          <div className="flex items-center justify-between">
+            <div className="space-y-2">
+              <Skeleton className="h-6 w-40" />
+              <Skeleton className="h-4 w-72" />
+            </div>
+            <Skeleton className="h-9 w-36" />
+          </div>
+        </div>
+
+        {/* Filters skeleton */}
+        <div className="bg-white border border-gray-200 rounded-lg p-4 mb-6">
+          <div className="flex flex-col sm:flex-row gap-4">
+            <Skeleton className="h-9 w-full" />
+            <Skeleton className="h-9 w-48" />
+            <Skeleton className="h-9 w-48" />
+          </div>
+        </div>
+
+        {/* List skeleton */}
+        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+          <div className="border-b border-gray-200 p-3">
+            <Skeleton className="h-5 w-full" />
+          </div>
+          <div className="divide-y divide-gray-100">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="grid grid-cols-8 gap-4 px-6 py-4 items-center">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-4 w-72 col-span-1" />
+                <Skeleton className="h-4 w-40" />
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-6 w-20 rounded-full" />
+                <Skeleton className="h-6 w-24 rounded-md" />
+                <Skeleton className="h-8 w-8 ml-auto rounded-md" />
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
@@ -952,8 +1001,15 @@ const StudentTasks = () => {
             <Button variant="outline" onClick={() => setIsNewTaskOpen(false)}>
               Annuler
             </Button>
-            <Button onClick={handleAddTask} className="bg-teal-600 hover:bg-teal-700">
-              Créer la Tâche
+            <Button onClick={handleAddTask} disabled={isCreatingTask} className="bg-teal-600 hover:bg-teal-700 disabled:opacity-60 disabled:cursor-not-allowed">
+              {isCreatingTask ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Création...
+                </>
+              ) : (
+                'Créer la Tâche'
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1055,8 +1111,15 @@ const StudentTasks = () => {
               <Button variant="outline" onClick={() => setEditingTask(null)}>
                 Annuler
               </Button>
-              <Button onClick={handleEditTask} className="bg-teal-600 hover:bg-teal-700">
-                Enregistrer les Modifications
+              <Button onClick={handleEditTask} disabled={isUpdatingTask} className="bg-teal-600 hover:bg-teal-700 disabled:opacity-60 disabled:cursor-not-allowed">
+                {isUpdatingTask ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Enregistrement...
+                  </>
+                ) : (
+                  'Enregistrer les Modifications'
+                )}
               </Button>
             </DialogFooter>
           </DialogContent>
