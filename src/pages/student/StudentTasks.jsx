@@ -147,7 +147,7 @@ const StudentTasks = () => {
   });
 
   // États pour les filtres
-  const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'todo', 'in_progress', 'overdue', 'done'
+  const [statusFilter, setStatusFilter] = useState('not_done'); // 'not_done', 'all', 'todo', 'in_progress', 'overdue', 'done'
   const [searchQuery, setSearchQuery] = useState('');
   const [projectFilter, setProjectFilter] = useState('all');
 
@@ -348,6 +348,8 @@ const StudentTasks = () => {
 
   const getStatusLabel = (status) => {
     switch (status) {
+      case 'not_done':
+        return 'Non terminées';
       case STATUS_TYPES.TODO:
         return 'À faire';
       case STATUS_TYPES.IN_PROGRESS:
@@ -383,8 +385,11 @@ const StudentTasks = () => {
   // Filtrer les tâches
   const filteredTasks = useMemo(() => {
     return tasks.filter((task) => {
-      // Filtre par statut: 'all' inclut désormais tous les statuts
-      if (statusFilter !== 'all' && statusFilter !== task.statut) {
+      if (statusFilter === 'not_done') {
+        if (task.statut === STATUS_TYPES.DONE) {
+          return false;
+        }
+      } else if (statusFilter !== 'all' && statusFilter !== task.statut) {
         return false;
       }
 
@@ -869,6 +874,7 @@ const StudentTasks = () => {
                   <SelectValue placeholder="Filtrer par statut" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="not_done">Non terminées</SelectItem>
                   <SelectItem value="all">Tous</SelectItem>
                   <SelectItem value={STATUS_TYPES.TODO}>À faire</SelectItem>
                   <SelectItem value={STATUS_TYPES.IN_PROGRESS}>En cours</SelectItem>
@@ -937,7 +943,7 @@ const StudentTasks = () => {
                 variant="ghost"
                 size="sm"
                 onClick={() => {
-                  setStatusFilter('all');
+                  setStatusFilter('not_done');
                   setSearchQuery('');
                   setProjectFilter('all');
                 }}
