@@ -63,6 +63,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -541,7 +547,7 @@ const StudentTasks = () => {
         pointerEvents: isOverlay ? 'none' : style?.pointerEvents,
       };
 
-      return (
+      const card = (
         <Card
           ref={ref}
           style={cardStyle}
@@ -555,7 +561,6 @@ const StudentTasks = () => {
               <div className="flex-1 w-full">
                 <div className='flex justify-between'>
                   <div className="mb-3">
-                    {/* <span className="text-xs text-gray-500">Nom de la tâche:</span> */}
                     <p className="text-sm text-gray-900 line-clamp-2 font-semibold">{task.nom}</p>
                   </div>
                   <div>
@@ -573,32 +578,6 @@ const StudentTasks = () => {
                   </div>
                 )}
               </div>
-              {/* <div className="flex items-center gap-1">
-                <button
-                  className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-100 rounded"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (!isOverlay) {
-                      setEditingTask(mapTaskForEditing(task));
-                    }
-                  }}
-                  disabled={isOverlay}
-                >
-                  <Edit2 className="h-3.5 w-3.5 text-gray-500" />
-                </button>
-                <button
-                  className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-50 rounded"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (!isOverlay) {
-                      handleDeleteTask(task.id);
-                    }
-                  }}
-                  disabled={isOverlay}
-                >
-                  <Trash2 className="h-3.5 w-3.5 text-red-500" />
-                </button>
-              </div> */}
             </div>
 
             <div className="mt-3 space-y-1 text-xs text-gray-500">
@@ -623,6 +602,31 @@ const StudentTasks = () => {
             </div>
           </CardContent>
         </Card>
+      );
+
+      if (isOverlay) {
+        return card;
+      }
+
+      return (
+        <ContextMenu>
+          <ContextMenuTrigger asChild>{card}</ContextMenuTrigger>
+          <ContextMenuContent>
+            <ContextMenuItem
+              onClick={() => setEditingTask(mapTaskForEditing(task))}
+            >
+              <Edit2 className="h-4 w-4 mr-2 text-gray-500" />
+              Modifier
+            </ContextMenuItem>
+            <ContextMenuItem
+              onClick={() => handleDeleteTask(task.id)}
+              className="text-red-600 focus:text-red-600 hover:bg-red-50"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Supprimer
+            </ContextMenuItem>
+          </ContextMenuContent>
+        </ContextMenu>
       );
     }
   );
