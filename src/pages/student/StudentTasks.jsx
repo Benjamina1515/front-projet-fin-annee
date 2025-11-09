@@ -88,6 +88,32 @@ const PRIORITY_COLORS = {
   [PRIORITIES.LOW]: 'bg-blue-100 text-blue-700 border-blue-200',
 };
 
+const toDateInputValue = (value) => {
+  if (!value) return '';
+
+  if (typeof value === 'string') {
+    const trimmed = value.slice(0, 10);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+      return trimmed;
+    }
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return '';
+  }
+
+  const iso = parsed.toISOString();
+  return iso.split('T')[0];
+};
+
+const mapTaskForEditing = (task) => ({
+  ...task,
+  date_debut: toDateInputValue(task.date_debut),
+  date_fin: toDateInputValue(task.date_fin),
+  projet_id: task.projet_id ?? task.projet?.id ?? '',
+});
+
 const StudentTasks = () => {
   const { user: _user } = useAuth();
   const [tasks, setTasks] = useState([]);
@@ -310,7 +336,7 @@ const StudentTasks = () => {
       case STATUS_TYPES.DONE:
         return 'border-t-2 border-t-green-500';
       default:
-        return 'border-t-2 border-t-gray-300';
+        return 'border-t-2 border-t-blue-900';
     }
   };
 
@@ -545,7 +571,7 @@ const StudentTasks = () => {
                   onClick={(e) => {
                     e.stopPropagation();
                     if (!isOverlay) {
-                      setEditingTask({ ...task });
+                      setEditingTask(mapTaskForEditing(task));
                     }
                   }}
                   disabled={isOverlay}
@@ -623,20 +649,20 @@ const StudentTasks = () => {
             <h2 className="font-semibold text-gray-900">{getStatusLabel(status)}</h2>
             <Badge
               variant="secondary"
-              className={`${
+              className={`${ 
                 status === STATUS_TYPES.IN_PROGRESS
-                  ? 'bg-orange-100 text-orange-700'
+                  ? 'bg-orange-400 text-white'
                   : status === STATUS_TYPES.OVERDUE
-                  ? 'bg-red-100 text-red-700'
+                  ? 'bg-red-500 text-white'
                   : status === STATUS_TYPES.DONE
-                  ? 'bg-green-100 text-green-700'
-                  : 'bg-gray-100 text-gray-700'
+                  ? 'bg-green-600 text-white'
+                  : 'bg-blue-900 text-white'
               }`}
             >
               {columnTasks.length}
             </Badge>
           </div>
-          {getStatusIcon(status)}
+          {/* {getStatusIcon(status)} */}
         </div>
 
         <ScrollArea className="flex-1 pr-2 min-h-[200px]">
@@ -660,8 +686,6 @@ const StudentTasks = () => {
               </div>
             )}
           </div>
-        </ScrollArea>
-
         <Button
           variant="ghost"
           className="w-full mt-3 text-gray-600 hover:text-gray-900 hover:bg-gray-50"
@@ -673,6 +697,8 @@ const StudentTasks = () => {
           <Plus className="h-4 w-4 mr-2" />
           Nouvelle tâche
         </Button>
+        </ScrollArea>
+
       </div>
     );
   };
@@ -820,7 +846,7 @@ const StudentTasks = () => {
                   <SelectValue placeholder="Filtrer par statut" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Tous (Sauf Terminées)</SelectItem>
+                  <SelectItem value="all">Tous</SelectItem>
                   <SelectItem value={STATUS_TYPES.TODO}>À faire</SelectItem>
                   <SelectItem value={STATUS_TYPES.IN_PROGRESS}>En cours</SelectItem>
                   <SelectItem value={STATUS_TYPES.OVERDUE}>En retard</SelectItem>
@@ -1061,7 +1087,7 @@ const StudentTasks = () => {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="z-9999">
-                              <DropdownMenuItem onClick={() => setEditingTask({ ...task })}>
+                              <DropdownMenuItem onClick={() => setEditingTask(mapTaskForEditing(task))}>
                                 <Edit2 className="h-4 w-4 mr-2" />
                                 Modifier
                               </DropdownMenuItem>
@@ -1236,7 +1262,7 @@ const StudentTasks = () => {
                 <div>
                   <Label htmlFor="edit-date_debut">Date début</Label>
                   <Input
-                    id="edit-date_debut"
+                    id="date_debut"
                     type="date"
                     value={editingTask.date_debut || ''}
                     onChange={(e) =>
