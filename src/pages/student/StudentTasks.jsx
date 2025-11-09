@@ -139,7 +139,7 @@ const StudentTasks = () => {
     date_debut: '',
     date_fin: '',
   });
-  
+
   // États pour les filtres
   const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'todo', 'in_progress', 'overdue', 'done'
   const [searchQuery, setSearchQuery] = useState('');
@@ -164,10 +164,10 @@ const StudentTasks = () => {
           projectService.getStudentProjects(),
           taskService.getStats(),
         ]);
-        
+
         setTasks(tasksData);
         setStats(statsData);
-        
+
         // Extraire les projets uniques de la liste des projets de l'étudiant
         const uniqueProjects = [];
         projectsData.forEach((projet) => {
@@ -207,11 +207,11 @@ const StudentTasks = () => {
       });
 
       setTasks((prev) => [...prev, createdTask]);
-      
+
       // Recharger les statistiques
       const statsData = await taskService.getStats();
       setStats(statsData);
-      
+
       setNewTask({
         nom: '',
         priorite: PRIORITIES.MID,
@@ -248,11 +248,11 @@ const StudentTasks = () => {
       setTasks((prev) =>
         prev.map((task) => (task.id === updatedTask.id ? updatedTask : task))
       );
-      
+
       // Recharger les statistiques
       const statsData = await taskService.getStats();
       setStats(statsData);
-      
+
       setEditingTask(null);
       toast.success('Tâche modifiée avec succès');
     } catch (error) {
@@ -269,7 +269,7 @@ const StudentTasks = () => {
     try {
       await taskService.deleteTask(taskId);
       setTasks((prev) => prev.filter((task) => task.id !== taskId));
-      
+
       // Recharger les statistiques
       const statsData = await taskService.getStats();
       setStats(statsData);
@@ -293,9 +293,9 @@ const StudentTasks = () => {
       prev.map((task) =>
         task.id === taskId
           ? {
-              ...task,
-              statut: newStatus,
-            }
+            ...task,
+            statut: newStatus,
+          }
           : task
       )
     );
@@ -392,7 +392,7 @@ const StudentTasks = () => {
         const query = searchQuery.toLowerCase();
         const matchesNom = task.nom?.toLowerCase().includes(query);
         const matchesProject = task.projet?.titre?.toLowerCase().includes(query);
-        
+
         if (!matchesNom && !matchesProject) {
           return false;
         }
@@ -545,27 +545,35 @@ const StudentTasks = () => {
         <Card
           ref={ref}
           style={cardStyle}
-          className={`group mb-3 transition-shadow ${getStatusColor(task.statut)} ${
-            isOverlay ? 'opacity-90 shadow-lg' : 'hover:shadow-md'
-          } ${isDragging && !isOverlay ? 'cursor-grabbing shadow-lg' : 'cursor-grab'}`}
+          className={`group mb-3 transition-shadow ${getStatusColor(task.statut)} ${isOverlay ? 'opacity-90 shadow-lg' : 'hover:shadow-md'
+            } ${isDragging && !isOverlay ? 'cursor-grabbing shadow-lg' : 'cursor-grab'}`}
           {...(attributes ?? {})}
           {...(listeners ?? {})}
         >
           <CardContent className="p-4">
             <div className="flex items-start justify-between gap-2 mb-2">
-              <div className="flex-1">
-                <div className="mb-3">
-                  <span className="text-xs text-gray-500">Nom de la tâche:</span>
-                  <p className="text-sm text-gray-900 line-clamp-2 font-semibold">{task.nom}</p>
+              <div className="flex-1 w-full">
+                <div className='flex justify-between'>
+                  <div className="mb-3">
+                    {/* <span className="text-xs text-gray-500">Nom de la tâche:</span> */}
+                    <p className="text-sm text-gray-900 line-clamp-2 font-semibold">{task.nom}</p>
+                  </div>
+                  <div>
+                    <Badge
+                      className={`${PRIORITY_COLORS[task.priorite]} border font-medium text-xs`}
+                    >
+                      {getPriorityLabel(task.priorite)}
+                    </Badge>
+                  </div>
                 </div>
                 {task.projet && (
-                  <div className="mb-2">
-                    <span className="text-xs text-gray-500">Projet:</span>
-                    <p className="text-xs text-gray-600">{task.projet.titre}</p>
+                  <div className="mb-2 flex gap-0.5">
+                    <span className="text-xs text-gray-500">Projet :</span>
+                    <p className="text-xs text-gray-600"> {task.projet.titre}</p>
                   </div>
                 )}
               </div>
-              <div className="flex items-center gap-1">
+              {/* <div className="flex items-center gap-1">
                 <button
                   className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-100 rounded"
                   onClick={(e) => {
@@ -590,15 +598,28 @@ const StudentTasks = () => {
                 >
                   <Trash2 className="h-3.5 w-3.5 text-red-500" />
                 </button>
-              </div>
+              </div> */}
             </div>
 
-            <div className="flex items-center gap-2">
-              <Badge
-                className={`${PRIORITY_COLORS[task.priorite]} border font-medium text-xs`}
-              >
-                {getPriorityLabel(task.priorite)}
-              </Badge>
+            <div className="mt-3 space-y-1 text-xs text-gray-500">
+              <div className="flex items-center gap-2">
+                <CalendarIcon className="h-3.5 w-3.5 text-gray-400" />
+                <span>
+                  Début :
+                  <span className="ml-1 text-gray-700">
+                    {task.date_debut ? formatDate(task.date_debut) : '-'}
+                  </span>
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CalendarIcon className="h-3.5 w-3.5 text-gray-400" />
+                <span>
+                  Fin :
+                  <span className="ml-1 text-gray-700">
+                    {task.date_fin ? formatDate(task.date_fin) : '-'}
+                  </span>
+                </span>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -649,15 +670,14 @@ const StudentTasks = () => {
             <h2 className="font-semibold text-gray-900">{getStatusLabel(status)}</h2>
             <Badge
               variant="secondary"
-              className={`${ 
-                status === STATUS_TYPES.IN_PROGRESS
-                  ? 'bg-orange-400 text-white'
-                  : status === STATUS_TYPES.OVERDUE
+              className={`${status === STATUS_TYPES.IN_PROGRESS
+                ? 'bg-orange-400 text-white'
+                : status === STATUS_TYPES.OVERDUE
                   ? 'bg-red-500 text-white'
                   : status === STATUS_TYPES.DONE
-                  ? 'bg-green-600 text-white'
-                  : 'bg-blue-900 text-white'
-              }`}
+                    ? 'bg-green-600 text-white'
+                    : 'bg-blue-900 text-white'
+                }`}
             >
               {columnTasks.length}
             </Badge>
@@ -668,9 +688,8 @@ const StudentTasks = () => {
         <ScrollArea className="flex-1 pr-2 min-h-[200px]">
           <div
             ref={setNodeRef}
-            className={`space-y-0 min-h-[220px] rounded-md px-1 pb-1 transition-colors ${
-              isOver ? 'bg-teal-50/80 ring-1 ring-teal-200' : ''
-            }`}
+            className={`space-y-0 min-h-[220px] bg-gray-100 rounded-md px-2 py-1 transition-colors ${isOver ? 'bg-red-50/80 ring-1 ring-red-200' : ''
+              }`}
           >
             <SortableContext
               items={columnTasks.map((task) => task.id.toString())}
@@ -686,17 +705,17 @@ const StudentTasks = () => {
               </div>
             )}
           </div>
-        <Button
-          variant="ghost"
-          className="w-full mt-3 text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-          onClick={() => {
-            setNewTask({ ...newTask, statut: status });
-            setIsNewTaskOpen(true);
-          }}
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Nouvelle tâche
-        </Button>
+          <Button
+            variant="ghost"
+            className="w-full mt-3 text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+            onClick={() => {
+              setNewTask({ ...newTask, statut: status });
+              setIsNewTaskOpen(true);
+            }}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Nouvelle tâche
+          </Button>
         </ScrollArea>
 
       </div>
@@ -1053,10 +1072,10 @@ const StudentTasks = () => {
                                   task.statut === STATUS_TYPES.IN_PROGRESS
                                     ? 'border-orange-300 text-orange-700 bg-orange-50 cursor-pointer hover:bg-orange-100'
                                     : task.statut === STATUS_TYPES.OVERDUE
-                                    ? 'border-red-300 text-red-700 bg-red-50 cursor-pointer hover:bg-red-100'
-                                    : task.statut === STATUS_TYPES.DONE
-                                    ? 'border-green-300 text-green-700 bg-green-50 cursor-pointer hover:bg-green-100'
-                                    : 'border-gray-300 text-gray-700 bg-gray-50 cursor-pointer hover:bg-gray-100'
+                                      ? 'border-red-300 text-red-700 bg-red-50 cursor-pointer hover:bg-red-100'
+                                      : task.statut === STATUS_TYPES.DONE
+                                        ? 'border-green-300 text-green-700 bg-green-50 cursor-pointer hover:bg-green-100'
+                                        : 'border-gray-300 text-gray-700 bg-gray-50 cursor-pointer hover:bg-gray-100'
                                 }
                               >
                                 {getStatusLabel(task.statut)}
@@ -1091,7 +1110,7 @@ const StudentTasks = () => {
                                 <Edit2 className="h-4 w-4 mr-2" />
                                 Modifier
                               </DropdownMenuItem>
-                              <DropdownMenuItem 
+                              <DropdownMenuItem
                                 onClick={() => handleDeleteTask(task.id)}
                                 className="text-red-600 focus:text-red-600"
                               >
