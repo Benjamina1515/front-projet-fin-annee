@@ -20,6 +20,7 @@ import ProjectsManagement from './pages/admin/ProjectsManagement';
 import ProfessorDashboard from './pages/professor/ProfessorDashboard';
 import CreateProf from './pages/professor/CreateProf';
 import MesProjets from './pages/professor/MesProjets';
+import ProfessorStudentTasks from './pages/professor/ProfessorStudentTasks';
 
 // Pages Étudiant
 import StudentDashboard from './pages/student/StudentDashboard';
@@ -63,7 +64,7 @@ function App() {
             <Route index element={<ProfessorDashboard />} />
             <Route path="create-prof" element={<CreateProf />} />
             <Route path="projects" element={<MesProjets />} />
-            <Route path="evaluations" element={<div>Évaluations (À implémenter)</div>} />
+            <Route path="evaluations" element={<ProfessorStudentTasks />} />
             <Route path="students" element={<div>Mes Étudiants (À implémenter)</div>} />
           </Route>
 

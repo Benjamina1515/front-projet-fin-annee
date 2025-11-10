@@ -42,5 +42,11 @@ export const taskService = {
     const response = await api.patch(`/student/taches/${taskId}/statut`, { statut });
     return response.data?.tache;
   },
+
+  // Récupérer toutes les tâches des étudiants encadrés par le professeur connecté
+  getProfessorStudentTasks: async () => {
+    const response = await api.get('/professor/taches');
+    return response.data?.taches || [];
+  },
 };
 
