@@ -1157,6 +1157,15 @@ const StudentTasks = () => {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            {projects.length === 0 && (
+              <div className="flex items-start gap-3 rounded-md border border-amber-300 bg-amber-50 p-4 text-sm text-amber-800">
+                <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5" />
+                <div>
+                  <p className="font-medium">Création de tâche impossible</p>
+                  <p>Vous ne pouvez pas créer de tâche car aucun projet ne vous est assigné. Veuillez contacter votre professeur pour être ajouté à un projet avant de réessayer.</p>
+                </div>
+              </div>
+            )}
             <div>
               <Label htmlFor="nom">Nom de la tâche *</Label>
               <Input
@@ -1165,6 +1174,7 @@ const StudentTasks = () => {
                 onChange={(e) => setNewTask({ ...newTask, nom: e.target.value })}
                 placeholder="Entrez le nom de la tâche"
                 required
+                disabled={projects.length === 0}
               />
             </div>
             <div>
@@ -1172,6 +1182,7 @@ const StudentTasks = () => {
               <Select
                 value={newTask.priorite}
                 onValueChange={(value) => setNewTask({ ...newTask, priorite: value })}
+                disabled={projects.length === 0}
               >
                 <SelectTrigger id="priorite">
                   <SelectValue placeholder="Sélectionnez une priorité" />
@@ -1191,6 +1202,7 @@ const StudentTasks = () => {
                   type="date"
                   value={newTask.date_debut}
                   onChange={(e) => setNewTask({ ...newTask, date_debut: e.target.value })}
+                  disabled={projects.length === 0}
                 />
               </div>
               <div>
@@ -1200,6 +1212,7 @@ const StudentTasks = () => {
                   type="date"
                   value={newTask.date_fin}
                   onChange={(e) => setNewTask({ ...newTask, date_fin: e.target.value })}
+                  disabled={projects.length === 0}
                 />
               </div>
             </div>
@@ -1208,23 +1221,20 @@ const StudentTasks = () => {
               <Select
                 value={newTask.projet_id}
                 onValueChange={(value) => setNewTask({ ...newTask, projet_id: value })}
+                disabled={projects.length === 0}
               >
                 <SelectTrigger id="projet_id">
-                  <SelectValue placeholder="Sélectionnez un projet" />
+                  <SelectValue placeholder={projects.length === 0 ? "Aucun projet disponible" : "Sélectionnez un projet"} />
                 </SelectTrigger>
-                <SelectContent position="popper" className="z-9999">
-                  {projects.length > 0 ? (
-                    projects.map((project) => (
+                {projects.length > 0 && (
+                  <SelectContent position="popper" className="z-9999">
+                    {projects.map((project) => (
                       <SelectItem key={project.id} value={project.id.toString()}>
                         {project.titre}
                       </SelectItem>
-                    ))
-                  ) : (
-                    <SelectItem value="" disabled>
-                      Aucun projet disponible
-                    </SelectItem>
-                  )}
-                </SelectContent>
+                    ))}
+                  </SelectContent>
+                )}
               </Select>
             </div>
           </div>
@@ -1232,7 +1242,16 @@ const StudentTasks = () => {
             <Button variant="outline" onClick={() => setIsNewTaskOpen(false)}>
               Annuler
             </Button>
-            <Button onClick={handleAddTask} disabled={isCreatingTask} className="bg-teal-600 hover:bg-teal-700 disabled:opacity-60 disabled:cursor-not-allowed">
+            <Button
+              onClick={handleAddTask}
+              disabled={
+                isCreatingTask ||
+                projects.length === 0 ||
+                !newTask.nom.trim() ||
+                !newTask.projet_id
+              }
+              className="bg-teal-600 hover:bg-teal-700 disabled:opacity-60 disabled:cursor-not-allowed"
+            >
               {isCreatingTask ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
