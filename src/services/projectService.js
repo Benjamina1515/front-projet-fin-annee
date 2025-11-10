@@ -7,6 +7,12 @@ export const projectService = {
     return response.data?.projets || [];
   },
 
+  // Alias explicite pour les projets du professeur
+  getProfessorProjects: async () => {
+    const response = await api.get('/projets');
+    return response.data?.projets || [];
+  },
+
   // Récupérer tous les projets (pour admin)
   getAllProjectsAdmin: async () => {
     const response = await api.get('/admin/projets');
