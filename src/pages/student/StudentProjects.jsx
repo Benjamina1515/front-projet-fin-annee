@@ -3,7 +3,7 @@ import { projectService } from '../../services/projectService';
 import { useAuth } from '../../contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
-import { Avatar, AvatarFallback } from '../../components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '../../components/ui/avatar';
 import { ScrollArea } from '../../components/ui/scroll-area';
 import { Skeleton } from '../../components/ui/skeleton';
 import {
@@ -25,6 +25,7 @@ import { BookOpen, Circle, GraduationCap, ChevronDown, ChevronRight, ChevronLeft
 import { toast } from 'react-toastify';
 import { motion, AnimatePresence } from 'framer-motion';
 import Breadcrumbs from '../../components/common/Breadcrumbs';
+import { getAvatarUrl } from '../../utils/avatar';
 
 const StudentProjects = () => {
   const { user } = useAuth();
@@ -521,6 +522,23 @@ const StudentProjects = () => {
                                       style={{ marginLeft: idx > 0 ? '-8px' : '0' }}
                                       title={member.nom || 'Membre'}
                                     >
+                                      {(() => {
+                                        // Utiliser avatar_url si disponible (URL complète du backend)
+                                        // Sinon, construire l'URL à partir de avatar
+                                        let avatarUrl = null;
+                                        if (member.avatar_url) {
+                                          avatarUrl = member.avatar_url;
+                                        } else if (member.avatar) {
+                                          avatarUrl = getAvatarUrl(member.avatar);
+                                        }
+                                        return avatarUrl ? (
+                                          <AvatarImage 
+                                            src={avatarUrl} 
+                                            alt={member.nom || 'Membre'}
+                                            className="object-cover"
+                                          />
+                                        ) : null;
+                                      })()}
                                       <AvatarFallback className="bg-gradient-to-br from-blue-400 to-blue-600 text-white text-[10px] font-semibold">
                                         {member.nom ? member.nom.charAt(0).toUpperCase() : '?'}
                                       </AvatarFallback>
