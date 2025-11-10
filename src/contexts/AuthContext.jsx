@@ -126,6 +126,21 @@ export const AuthProvider = ({ children }) => {
     return roles.includes(user?.role);
   };
 
+  // Rafraîchir le profil courant depuis l'API et mettre à jour le contexte
+  const refreshProfile = async () => {
+    try {
+      const data = await authService.getProfile();
+      const freshUser = data?.user || data;
+      if (freshUser) {
+        localStorage.setItem('user', JSON.stringify(freshUser));
+        setUser(freshUser);
+      }
+      return freshUser;
+    } catch (e) {
+      return null;
+    }
+  };
+
   const value = {
     user,
     token,
@@ -136,6 +151,7 @@ export const AuthProvider = ({ children }) => {
     isAuthenticated: !!user && !!token,
     hasRole,
     hasAnyRole,
+    refreshProfile,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

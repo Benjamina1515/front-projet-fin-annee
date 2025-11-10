@@ -19,6 +19,7 @@ import { Skeleton } from '../../components/ui/skeleton';
 import ProjectSlideOver from '../../components/professor/ProjectSlideOver';
 import SujetsSlideOver from '../../components/professor/SujetsSlideOver';
 import ProjectDetailsSlideOver from '../../components/professor/ProjectDetailsSlideOver';
+import Breadcrumbs from '../../components/common/Breadcrumbs';
 
 const MesProjets = () => {
   const [projets, setProjets] = useState([]);
@@ -347,6 +348,7 @@ const MesProjets = () => {
 
   return (
     <div className="space-y-6">
+      <Breadcrumbs />
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Mes Projets</h1>

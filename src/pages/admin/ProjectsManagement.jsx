@@ -14,6 +14,7 @@ import { Input } from '../../components/ui/input';
 import { Search, BookOpen, Users, Calendar, User, Hash } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { Skeleton } from '../../components/ui/skeleton';
+import Breadcrumbs from '../../components/common/Breadcrumbs';
 
 const ProjectsManagement = () => {
   const [projets, setProjets] = useState([]);
@@ -87,6 +88,7 @@ const ProjectsManagement = () => {
 
   return (
     <div className="space-y-6">
+      <Breadcrumbs />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-gray-900">Gestion des Projets</h1>

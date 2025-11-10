@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { projectService } from '../../services/projectService';
 import { useAuth } from '../../contexts/AuthContext';
-import { FolderKanban, CheckCircle, Clock, FileText } from 'lucide-react';
+import { FolderKanban, CheckCircle, Clock, FileText, RefreshCw } from 'lucide-react';
+import Breadcrumbs from '../../components/common/Breadcrumbs';
+import { Button } from '../../components/ui/button';
 
 const StudentDashboard = () => {
   const { user } = useAuth();
@@ -12,6 +14,7 @@ const StudentDashboard = () => {
     pendingTasks: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState(null);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -38,6 +41,7 @@ const StudentDashboard = () => {
           completedTasks,
           pendingTasks,
         });
+        setLastUpdated(new Date());
       } catch (error) {
         console.error('Erreur lors du chargement des statistiques:', error);
       } finally {
@@ -48,6 +52,8 @@ const StudentDashboard = () => {
     if (user?.id) {
       fetchStats();
     }
+    const interval = setInterval(fetchStats, 30000);
+    return () => clearInterval(interval);
   }, [user]);
 
   const statCards = [
@@ -87,9 +93,21 @@ const StudentDashboard = () => {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold text-gray-900 mb-6">
-        Dashboard Étudiant - {user?.name}
-      </h1>
+      <div className="mb-4">
+        <Breadcrumbs />
+      </div>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-3xl font-bold text-gray-900">
+          Dashboard Étudiant - {user?.name}
+        </h1>
+        <div className="flex items-center gap-3 text-sm text-gray-500">
+          {lastUpdated && <span>Mis à jour: {lastUpdated.toLocaleTimeString('fr-FR')}</span>}
+          <Button size="sm" variant="outline" className="gap-2" onClick={() => window.location.reload()}>
+            <RefreshCw className="h-4 w-4" />
+            Actualiser
+          </Button>
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {statCards.map((stat, index) => {
@@ -97,7 +115,7 @@ const StudentDashboard = () => {
           return (
             <div
               key={index}
-              className="bg-white rounded-lg shadow-md p-6 border border-gray-200"
+              className="bg-white rounded-lg shadow-md p-6 border border-gray-200 hover:shadow-lg transition-shadow"
             >
               <div className="flex items-center justify-between">
                 <div>

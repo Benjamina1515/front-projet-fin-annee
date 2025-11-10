@@ -27,6 +27,8 @@ import ProfessorStudentTasks from './pages/professor/ProfessorStudentTasks';
 import StudentDashboard from './pages/student/StudentDashboard';
 import StudentProjects from './pages/student/StudentProjects';
 import StudentTasks from './pages/student/StudentTasks';
+import Profile from './pages/Profile';
+import Sidebar from './components/Sidebar';
 
 function App() {
   return (
@@ -36,6 +38,23 @@ function App() {
           {/* Route publique */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+
+          {/* Profil (tous rôles) */}
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.PROFESSOR, ROLES.STUDENT]}>
+                <div className="min-h-screen bg-gray-50 overflow-x-hidden">
+                  <div className="flex overflow-x-hidden">
+                    <Sidebar />
+                    <main className="flex-1 min-w-0 p-6 overflow-x-hidden">
+                      <Profile />
+                    </main>
+                  </div>
+                </div>
+              </ProtectedRoute>
+            }
+          />
 
           {/* Routes Admin */}
           <Route

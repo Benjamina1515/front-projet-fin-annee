@@ -71,6 +71,7 @@ import {
 } from '@/components/ui/context-menu';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
+import Breadcrumbs from '../../components/common/Breadcrumbs';
 
 // Types de statut
 const STATUS_TYPES = {
@@ -735,6 +736,9 @@ const StudentTasks = () => {
     <div className="min-h-screen container bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-8 py-6">
+        <div className="mb-2">
+          <Breadcrumbs />
+        </div>
         <div className="flex items-center justify-between mb-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 mb-1">Tâches</h1>
@@ -781,7 +785,7 @@ const StudentTasks = () => {
             <LayoutGrid className="h-4 w-4 mr-2" />
             Tableau
           </Button>
-          <Button
+          {/* <Button
             variant={viewMode === 'calendar' ? 'default' : 'outline'}
             size="sm"
             onClick={() => setViewMode('calendar')}
@@ -793,56 +797,12 @@ const StudentTasks = () => {
           >
             <Calendar className="h-4 w-4 mr-2" />
             Calendrier
-          </Button>
+          </Button> */}
         </div>
       </div>
 
       {/* Content */}
       <div className="px-8 py-8" >
-        {/* Statistiques */}
-        {/* <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-          <div className="bg-white rounded-lg shadow-md p-4 border border-gray-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-600 text-sm font-medium">Total</p>
-                <p className="text-2xl font-bold text-gray-900 mt-1">{stats.total}</p>
-              </div>
-            </div>
-          </div>
-          <div className="bg-white rounded-lg shadow-md p-4 border border-gray-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-600 text-sm font-medium">To Do</p>
-                <p className="text-2xl font-bold text-gray-900 mt-1">{stats.todo}</p>
-              </div>
-            </div>
-          </div>
-          <div className="bg-white rounded-lg shadow-md p-4 border border-gray-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-600 text-sm font-medium">En cours</p>
-                <p className="text-2xl font-bold text-orange-600 mt-1">{stats.in_progress}</p>
-              </div>
-            </div>
-          </div>
-          <div className="bg-white rounded-lg shadow-md p-4 border border-gray-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-600 text-sm font-medium">En retard</p>
-                <p className="text-2xl font-bold text-red-600 mt-1">{stats.overdue}</p>
-              </div>
-            </div>
-          </div>
-          <div className="bg-white rounded-lg shadow-md p-4 border border-gray-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-600 text-sm font-medium">Terminées</p>
-                <p className="text-2xl font-bold text-green-600 mt-1">{stats.done}</p>
-              </div>
-            </div>
-          </div>
-        </div> */}
-
         {/* Filtres */}
         <div className="mb-6 bg-white rounded-lg border border-gray-200 p-4">
           <div className="flex flex-col sm:flex-row gap-4">

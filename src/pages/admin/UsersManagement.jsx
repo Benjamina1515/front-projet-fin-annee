@@ -31,6 +31,7 @@ import { toast } from 'react-toastify';
 import UserSlideOver from '../../components/admin/UserSlideOver';
 import { getAvatarUrl } from '../../utils/avatar';
 import { Skeleton } from '../../components/ui/skeleton';
+import Breadcrumbs from '../../components/common/Breadcrumbs';
 
 const UsersManagement = ({ roleFilter }) => {
   const [users, setUsers] = useState([]);
@@ -193,6 +194,7 @@ const UsersManagement = ({ roleFilter }) => {
 
   return (
     <div className="space-y-6 relative">
+      <Breadcrumbs />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-gray-900">

@@ -24,6 +24,7 @@ import {
 import { BookOpen, Circle, GraduationCap, ChevronDown, ChevronRight, ChevronLeft, Info, Calendar, Users, FileText, User } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { motion, AnimatePresence } from 'framer-motion';
+import Breadcrumbs from '../../components/common/Breadcrumbs';
 
 const StudentProjects = () => {
   const { user } = useAuth();
@@ -416,6 +417,9 @@ const StudentProjects = () => {
       {/* Zone principale - Liste des Projets */}
       <main className="flex-1 overflow-y-auto bg-white">
         <div className="p-8 max-w-7xl mx-auto">
+          <div className="mb-4">
+            <Breadcrumbs />
+          </div>
           <div className="flex items-center justify-between mb-8">
             <motion.h1
               initial={{ opacity: 0, y: -10 }}
