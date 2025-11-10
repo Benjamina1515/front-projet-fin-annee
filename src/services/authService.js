@@ -7,6 +7,12 @@ export const authService = {
     return response.data;
   },
 
+  // Inscription
+  register: async (data) => {
+    const response = await api.post('/auth/register', data);
+    return response.data;
+  },
+
   // Déconnexion
   logout: async () => {
     await api.post('/auth/logout');

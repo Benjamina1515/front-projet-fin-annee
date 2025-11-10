@@ -10,6 +10,7 @@ import StudentLayout from './layouts/StudentLayout';
 
 // Pages publiques
 import Login from './pages/Login';
+import Register from './pages/Register';
 
 // Pages Admin
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -34,6 +35,7 @@ function App() {
         <Routes>
           {/* Route publique */}
           <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
 
           {/* Routes Admin */}
           <Route

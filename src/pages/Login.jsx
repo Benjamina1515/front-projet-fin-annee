@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { ROLE_ROUTES } from '../utils/constants';
 import { toast } from 'react-toastify';
@@ -102,6 +102,13 @@ const Login = () => {
             Etudiant: etudiant@example.com / password
           </p>
         </div>
+
+        <p className="mt-6 text-center text-sm text-gray-600">
+          Pas encore de compte ?{' '}
+          <Link to="/register" className="text-blue-600 hover:text-blue-700 font-medium">
+            Créer un compte
+          </Link>
+        </p>
       </div>
     </div>
   );

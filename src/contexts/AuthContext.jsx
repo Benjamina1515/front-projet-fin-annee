@@ -68,6 +68,40 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const register = async (payload) => {
+    try {
+      const response = await authService.register(payload);
+      const newToken = response?.token || response?.data?.token;
+      const userData = response?.user || response?.data?.user;
+
+      if (!newToken || !userData) {
+        throw new Error("Réponse d'inscription invalide");
+      }
+
+      localStorage.setItem('token', newToken);
+      localStorage.setItem('user', JSON.stringify(userData));
+      setToken(newToken);
+      setUser(userData);
+
+      return { success: true };
+    } catch (error) {
+      const validationErrors = error.response?.data?.errors;
+      let message = error.response?.data?.message || error.message || "Erreur lors de l'inscription";
+
+      if (validationErrors) {
+        const firstError = Object.values(validationErrors).flat()?.[0];
+        if (firstError) {
+          message = firstError;
+        }
+      }
+
+      return {
+        success: false,
+        error: message,
+      };
+    }
+  };
+
   // Déconnexion
   const logout = async () => {
     try {
@@ -98,6 +132,7 @@ export const AuthProvider = ({ children }) => {
     loading,
     login,
     logout,
+    register,
     isAuthenticated: !!user && !!token,
     hasRole,
     hasAnyRole,
