@@ -6,10 +6,12 @@ import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
-import { Mail, User as UserIcon, Shield, UploadCloud, Pencil, GraduationCap, Hash, Star } from 'lucide-react';
+import { Mail, User as UserIcon, Shield, UploadCloud, Pencil, GraduationCap, Hash, Star, FolderKanban, CheckSquare, Clock } from 'lucide-react';
 import Breadcrumbs from '../components/common/Breadcrumbs';
 import { userService } from '../services/userService';
 import { authService } from '../services/authService';
+import { projectService } from '../services/projectService';
+import { taskService } from '../services/taskService';
 import { toast } from 'react-toastify';
 import { getAvatarUrl } from '../utils/avatar';
 
@@ -30,6 +32,12 @@ const Profile = () => {
   });
   const [avatarFile, setAvatarFile] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState('');
+  const [stats, setStats] = useState({
+    projects: 0,
+    tasks: 0,
+    lastLogin: null,
+  });
+  const [loadingStats, setLoadingStats] = useState(true);
 
   useEffect(() => {
     const load = async () => {
@@ -59,6 +67,51 @@ const Profile = () => {
       });
       const path = profile.avatar || profile.avatar_url || '';
       setAvatarPreview(path ? getAvatarUrl(path) : '');
+    }
+  }, [profile]);
+
+  // Charger les statistiques (projets, tâches, dernière connexion)
+  useEffect(() => {
+    const loadStats = async () => {
+      if (!profile?.role) return;
+      
+      try {
+        setLoadingStats(true);
+        let projectsCount = 0;
+        let tasksCount = 0;
+
+        // Récupérer les projets selon le rôle
+        if (profile.role === 'etudiant') {
+          const projects = await projectService.getStudentProjects();
+          projectsCount = projects?.length || 0;
+          
+          const tasks = await taskService.getStudentTasks();
+          tasksCount = tasks?.length || 0;
+        } else if (profile.role === 'prof') {
+          const projects = await projectService.getProfessorProjects();
+          projectsCount = projects?.length || 0;
+          
+          const tasks = await taskService.getProfessorStudentTasks();
+          tasksCount = tasks?.length || 0;
+        } else if (profile.role === 'admin') {
+          const projects = await projectService.getAllProjectsAdmin();
+          projectsCount = projects?.length || 0;
+        }
+
+        setStats({
+          projects: projectsCount,
+          tasks: tasksCount,
+          lastLogin: profile.last_login || profile.last_activity || profile.updated_at || null,
+        });
+      } catch (error) {
+        console.error('Erreur lors du chargement des statistiques:', error);
+      } finally {
+        setLoadingStats(false);
+      }
+    };
+
+    if (profile) {
+      loadStats();
     }
   }, [profile]);
 
@@ -189,7 +242,7 @@ const Profile = () => {
                     )}
                   </div>
                   {profile?.role && (
-                    <Badge className="bg-blue-100 text-blue-700 border border-blue-200">
+                    <Badge className="bg-blue-900 text-white border capitalize border-blue-900">
                       {profile.role}
                     </Badge>
                   )}
@@ -207,7 +260,7 @@ const Profile = () => {
                     )}
                   </div>
                   <div className="flex items-center gap-2 text-gray-600">
-                    <Shield className="h-4 w-4 text-gray-400" />
+                    <Shield className="h-4 w-4 text-red-400" />
                     <span>Accès: {profile?.role || '-'}</span>
                   </div>
                 </div>
@@ -296,17 +349,62 @@ const Profile = () => {
 
       {!loading && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card className="p-4">
-            <p className="text-sm text-gray-500">Projets</p>
-            <p className="text-2xl font-bold text-gray-900 mt-1">—</p>
+          <Card className="p-6 border-2 border-blue-900/10 bg-gradient-to-br from-blue-50 to-white hover:shadow-lg transition-shadow">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600 mb-1">Projets</p>
+                {loadingStats ? (
+                  <div className="h-8 w-16 bg-gray-200 animate-pulse rounded" />
+                ) : (
+                  <p className="text-3xl font-bold text-blue-900 mt-1">{stats.projects}</p>
+                )}
+              </div>
+              <div className="h-12 w-12 rounded-full bg-blue-900/10 flex items-center justify-center">
+                <FolderKanban className="h-6 w-6 text-blue-900" />
+              </div>
+            </div>
           </Card>
-          <Card className="p-4">
-            <p className="text-sm text-gray-500">Tâches</p>
-            <p className="text-2xl font-bold text-gray-900 mt-1">—</p>
+          
+          <Card className="p-6 border-2 border-amber-500/10 bg-gradient-to-br from-amber-50 to-white hover:shadow-lg transition-shadow">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600 mb-1">Tâches</p>
+                {loadingStats ? (
+                  <div className="h-8 w-16 bg-gray-200 animate-pulse rounded" />
+                ) : (
+                  <p className="text-3xl font-bold text-amber-500 mt-1">{stats.tasks}</p>
+                )}
+              </div>
+              <div className="h-12 w-12 rounded-full bg-amber-500/10 flex items-center justify-center">
+                <CheckSquare className="h-6 w-6 text-amber-500" />
+              </div>
+            </div>
           </Card>
-          <Card className="p-4">
-            <p className="text-sm text-gray-500">Dernière connexion</p>
-            <p className="text-2xl font-bold text-gray-900 mt-1">—</p>
+          
+          <Card className="p-6 border-2 border-blue-900/10 bg-gradient-to-br from-blue-50 to-white hover:shadow-lg transition-shadow">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600 mb-1">Dernière connexion</p>
+                {loadingStats ? (
+                  <div className="h-8 w-24 bg-gray-200 animate-pulse rounded" />
+                ) : stats.lastLogin ? (
+                  <p className="text-sm font-semibold text-blue-900 mt-1">
+                    {new Date(stats.lastLogin).toLocaleDateString('fr-FR', {
+                      day: '2-digit',
+                      month: 'short',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </p>
+                ) : (
+                  <p className="text-sm font-semibold text-gray-500 mt-1">Jamais</p>
+                )}
+              </div>
+              <div className="h-12 w-12 rounded-full bg-blue-900/10 flex items-center justify-center">
+                <Clock className="h-6 w-6 text-blue-900" />
+              </div>
+            </div>
           </Card>
         </div>
       )}

@@ -19,6 +19,16 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from './ui/alert-dialog';
 import { getAvatarUrl } from '../utils/avatar';
 import Logo from '../assets/logo-academic.png';
 import Icone from '../assets/icon.png';
@@ -30,6 +40,7 @@ const Sidebar = () => {
   const navigate = useNavigate();
   const [isUsersMenuOpen, setIsUsersMenuOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
 
   // Ouvrir automatiquement le sous-menu si on est sur une de ses pages
   useEffect(() => {
@@ -44,6 +55,7 @@ const Sidebar = () => {
   };
 
   const handleLogout = async () => {
+    setShowLogoutDialog(false);
     await logout();
     navigate('/login');
   };
@@ -281,7 +293,7 @@ const Sidebar = () => {
             )}
           </Link>
           <button
-            onClick={handleLogout}
+            onClick={() => setShowLogoutDialog(true)}
             className={cn(
               'mt-2 w-full flex items-center gap-2 px-2 py-2 rounded-md text-sm text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors',
               collapsed && 'justify-center'
@@ -293,6 +305,29 @@ const Sidebar = () => {
           </button>
         </div>
       </div>
+
+      {/* Modal de confirmation de déconnexion */}
+      <AlertDialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
+        <AlertDialogContent className="bg-white">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-gray-900">Confirmer la déconnexion</AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-600">
+              Êtes-vous sûr de vouloir vous déconnecter ? Vous devrez vous reconnecter pour accéder à nouveau à votre compte.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="bg-gray-100 text-gray-700 hover:bg-gray-200 border-gray-300">
+              Annuler
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleLogout}
+              className="bg-red-600 text-white hover:bg-red-700 focus:ring-red-600"
+            >
+              Déconnexion
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </aside>
   );
 };
