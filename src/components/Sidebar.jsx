@@ -20,6 +20,8 @@ import {
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { getAvatarUrl } from '../utils/avatar';
+import Logo from '../assets/logo-academic.png';
+import Icone from '../assets/icon.png';
 
 const Sidebar = () => {
   const location = useLocation();
@@ -31,8 +33,8 @@ const Sidebar = () => {
 
   // Ouvrir automatiquement le sous-menu si on est sur une de ses pages
   useEffect(() => {
-    if (location.pathname.startsWith('/admin/users/profs') || 
-        location.pathname.startsWith('/admin/users/etudiants')) {
+    if (location.pathname.startsWith('/admin/users/profs') ||
+      location.pathname.startsWith('/admin/users/etudiants')) {
       setIsUsersMenuOpen(true);
     }
   }, [location.pathname]);
@@ -101,20 +103,24 @@ const Sidebar = () => {
 
   return (
     <aside className={cn(
-      'flex-shrink-0 bg-white border-r h-screen overflow-hidden transition-all duration-200 sticky top-0 z-30',
-      collapsed ? 'w-20 min-w-[5rem] max-w-[5rem]' : 'w-64 min-w-[16rem] max-w-[16rem]'
+      'shrink-0 bg-white border-r h-screen overflow-hidden transition-all duration-200 sticky top-0 z-30',
+      collapsed ? 'w-20 min-w-20 max-w-20' : 'w-64 min-w-[16rem] max-w-[16rem]'
     )}>
       <div className="h-full flex flex-col">
         {/* Brand + Collapse toggle */}
         <div className="px-3 py-3 flex items-center justify-between border-b bg-white">
           <Link
             to={isAdmin ? '/admin' : isProfessor ? '/professor' : '/student'}
-            className="inline-flex items-center gap-2"
+            className={cn('inline-flex items-center', collapsed ? 'justify-center w-full' : 'gap-2')}
           >
-            <span className={cn('text-lg font-bold text-blue-600 truncate', collapsed && 'sr-only')}>
-              Suivi Académique
-            </span>
-            {!collapsed && <span className="text-xs text-gray-400">v1</span>}
+            <img
+              src={collapsed ? Icone : Logo}
+              alt={collapsed ? 'Icone' : 'Logo'}
+              className={cn(
+                'block w-auto transition-all duration-300',
+                collapsed ? 'h-9 w-9' : 'h-40 w-40'
+              )}
+            />
           </Link>
           <button
             onClick={() => setCollapsed((v) => !v)}
@@ -132,76 +138,84 @@ const Sidebar = () => {
             </div>
           )}
           <div className={cn('space-y-1.5', collapsed && 'space-y-1')}>
-          {links.map((link) => {
-            const Icon = link.icon;
-            const hasActiveSubmenu = link.submenu?.some(sub => isActive(sub.path));
+            {links.map((link) => {
+              const Icon = link.icon;
+              const hasActiveSubmenu = link.submenu?.some(sub => isActive(sub.path));
+              const underlineClass = collapsed
+                ? 'after:left-1/2 after:-translate-x-1/2 after:w-8'
+                : 'after:left-3 after:right-3';
 
-            if (link.hasSubmenu && link.submenu) {
+              if (link.hasSubmenu && link.submenu) {
+                return (
+                  <div key={link.path}>
+                    <button
+                      onClick={() => !collapsed && setIsUsersMenuOpen(!isUsersMenuOpen)}
+                      className={cn(
+                        'relative w-full flex items-center justify-between px-3 py-2.5 rounded-md transition-colors overflow-hidden',
+                        'after:absolute after:bottom-1 after:h-0.5 after:bg-blue-500 after:rounded-full after:origin-center after:scale-x-0 after:transition-transform after:duration-200',
+                        underlineClass,
+                        hasActiveSubmenu || isUsersMenuOpen
+                          ? 'text-blue-600 after:scale-x-100'
+                          : 'text-gray-700 hover:text-blue-600'
+                      )}
+                    >
+                      <div className={cn('flex items-center', collapsed ? 'justify-center w-full' : 'gap-3')}>
+                        <Icon className="h-5 w-5" />
+                        {!collapsed && <span className="font-medium">{link.label}</span>}
+                      </div>
+                      {!collapsed && (
+                        isUsersMenuOpen ? (
+                          <ChevronDown className="h-4 w-4 transition-transform duration-200" />
+                        ) : (
+                          <ChevronRight className="h-4 w-4 transition-transform duration-200" />
+                        )
+                      )}
+                    </button>
+                    {isUsersMenuOpen && !collapsed && (
+                      <div className="ml-2 mt-1 space-y-1.5">
+                        {link.submenu.map((subLink) => {
+                          const SubIcon = subLink.icon;
+                          return (
+                            <Link
+                              key={subLink.path}
+                              to={subLink.path}
+                              className={cn(
+                                'relative flex items-center gap-3 px-3 py-2 rounded-md transition-colors text-sm overflow-hidden',
+                                'after:absolute after:bottom-1 after:left-3 after:right-3 after:h-0.5 after:bg-blue-500 after:rounded-full after:origin-center after:scale-x-0 after:transition-transform after:duration-200',
+                                isActive(subLink.path)
+                                  ? 'text-blue-600 after:scale-x-100'
+                                  : 'text-gray-600 hover:text-blue-600'
+                              )}
+                            >
+                              <SubIcon className="h-4 w-4" />
+                              <span>{subLink.label}</span>
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              }
+
               return (
-                <div key={link.path}>
-                  <button
-                    onClick={() => !collapsed && setIsUsersMenuOpen(!isUsersMenuOpen)}
-                    className={cn(
-                      'w-full flex items-center justify-between px-3 py-2.5 rounded-md transition-colors',
-                      hasActiveSubmenu || isUsersMenuOpen
-                        ? 'bg-blue-600 text-white'
-                        : 'text-gray-700 hover:bg-gray-100'
-                    )}
-                  >
-                    <div className={cn('flex items-center', collapsed ? 'justify-center w-full' : 'gap-3')}>
-                      <Icon className="h-5 w-5" />
-                      {!collapsed && <span className="font-medium">{link.label}</span>}
-                    </div>
-                    {!collapsed && (
-                      isUsersMenuOpen ? (
-                        <ChevronDown className="h-4 w-4" />
-                      ) : (
-                        <ChevronRight className="h-4 w-4" />
-                      )
-                    )}
-                  </button>
-                  {isUsersMenuOpen && !collapsed && (
-                    <div className="ml-2 mt-1 space-y-1.5">
-                      {link.submenu.map((subLink) => {
-                        const SubIcon = subLink.icon;
-                        return (
-                          <Link
-                            key={subLink.path}
-                            to={subLink.path}
-                            className={cn(
-                              'flex items-center gap-3 px-3 py-2 rounded-md transition-colors text-sm',
-                              isActive(subLink.path)
-                                ? 'bg-blue-500 text-white'
-                                : 'text-gray-600 hover:bg-gray-100'
-                            )}
-                          >
-                            <SubIcon className="h-4 w-4" />
-                            <span>{subLink.label}</span>
-                          </Link>
-                        );
-                      })}
-                    </div>
+                <Link
+                  key={link.path}
+                  to={link.path}
+                  className={cn(
+                    'relative flex items-center gap-3 px-3 py-2.5 rounded-md transition-colors overflow-hidden',
+                    'after:absolute after:bottom-1 after:h-0.5 after:bg-blue-500 after:rounded-full after:origin-center after:scale-x-0 after:transition-transform after:duration-200',
+                    underlineClass,
+                    isActive(link.path)
+                      ? 'text-blue-600 after:scale-x-100'
+                      : 'text-gray-700 hover:text-blue-600'
                   )}
-                </div>
+                >
+                  <Icon className="h-5 w-5 mx-auto sm:mx-0" />
+                  {!collapsed && <span className="font-medium truncate">{link.label}</span>}
+                </Link>
               );
-            }
-
-            return (
-              <Link
-                key={link.path}
-                to={link.path}
-                className={cn(
-                  'flex items-center gap-3 px-3 py-2.5 rounded-md transition-colors',
-                  isActive(link.path)
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-700 hover:bg-gray-100'
-                )}
-              >
-                <Icon className="h-5 w-5 mx-auto sm:mx-0" />
-                {!collapsed && <span className="font-medium truncate">{link.label}</span>}
-              </Link>
-            );
-          })}
+            })}
           </div>
         </nav>
 

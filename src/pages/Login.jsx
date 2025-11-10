@@ -90,19 +90,6 @@ const Login = () => {
           </button>
         </form>
 
-        <div className="mt-6 text-center text-sm text-gray-600">
-          <p>Comptes de test :</p>
-          <p className="mt-2 text-xs">
-            Admin: admin@example.com / password
-          </p>
-          <p className="mt-2 text-xs">
-            Prof: prof@example.com / password
-          </p>
-          <p className="mt-2 text-xs">
-            Etudiant: etudiant@example.com / password
-          </p>
-        </div>
-
         <p className="mt-6 text-center text-sm text-gray-600">
           Pas encore de compte ?{' '}
           <Link to="/register" className="text-blue-600 hover:text-blue-700 font-medium">

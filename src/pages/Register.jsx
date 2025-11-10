@@ -30,7 +30,7 @@ const Register = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const navigate = useNavigate();
-    const { register } = useAauth();
+    const { register } = useAuth();
 
     const handleInputChange = (event) => {
         const { name, value } = event.target;
