@@ -18,7 +18,8 @@ import {
   User,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Avatar, AvatarFallback } from './ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import { getAvatarUrl } from '../utils/avatar';
 
 const Sidebar = () => {
   const location = useLocation();
@@ -84,6 +85,20 @@ const Sidebar = () => {
     .join('')
     .toUpperCase();
 
+  // Déterminer l'URL de l'avatar (préfère avatar_url si fourni, sinon construit via getAvatarUrl)
+  const rawAvatar =
+    user?.avatar ||
+    user?.avatar_url ||
+    user?.etudiant?.avatar ||
+    user?.etudiant?.avatar_url ||
+    user?.prof?.avatar ||
+    user?.prof?.avatar_url ||
+    '';
+  const avatarUrl =
+    typeof rawAvatar === 'string' && rawAvatar.includes('http')
+      ? rawAvatar
+      : getAvatarUrl(rawAvatar);
+
   return (
     <aside className={cn(
       'flex-shrink-0 bg-white border-r h-screen overflow-hidden transition-all duration-200',
@@ -91,7 +106,7 @@ const Sidebar = () => {
     )}>
       <div className="h-full flex flex-col">
         {/* Brand + Collapse toggle */}
-        <div className="px-3 py-3 flex items-center justify-between border-b">
+        <div className="px-3 py-3 flex items-center justify-between border-b bg-white">
           <Link
             to={isAdmin ? '/admin' : isProfessor ? '/professor' : '/student'}
             className="inline-flex items-center gap-2"
@@ -110,7 +125,13 @@ const Sidebar = () => {
           </button>
         </div>
 
-        <nav className="space-y-2 flex-1 overflow-y-auto p-3">
+        <nav className="flex-1 overflow-y-auto p-3 bg-white">
+          {!collapsed && (
+            <div className="px-2 pb-2">
+              <p className="text-xs uppercase tracking-wide text-gray-400">Navigation</p>
+            </div>
+          )}
+          <div className={cn('space-y-1.5', collapsed && 'space-y-1')}>
           {links.map((link) => {
             const Icon = link.icon;
             const hasActiveSubmenu = link.submenu?.some(sub => isActive(sub.path));
@@ -121,13 +142,13 @@ const Sidebar = () => {
                   <button
                     onClick={() => !collapsed && setIsUsersMenuOpen(!isUsersMenuOpen)}
                     className={cn(
-                      'w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-colors',
+                      'w-full flex items-center justify-between px-3 py-2.5 rounded-md transition-colors',
                       hasActiveSubmenu || isUsersMenuOpen
                         ? 'bg-blue-600 text-white'
                         : 'text-gray-700 hover:bg-gray-100'
                     )}
                   >
-                    <div className={cn('flex items-center', collapsed ? 'justify-center w-full' : 'space-x-3')}>
+                    <div className={cn('flex items-center', collapsed ? 'justify-center w-full' : 'gap-3')}>
                       <Icon className="h-5 w-5" />
                       {!collapsed && <span className="font-medium">{link.label}</span>}
                     </div>
@@ -140,7 +161,7 @@ const Sidebar = () => {
                     )}
                   </button>
                   {isUsersMenuOpen && !collapsed && (
-                    <div className="ml-2 mt-1 space-y-1">
+                    <div className="ml-2 mt-1 space-y-1.5">
                       {link.submenu.map((subLink) => {
                         const SubIcon = subLink.icon;
                         return (
@@ -148,7 +169,7 @@ const Sidebar = () => {
                             key={subLink.path}
                             to={subLink.path}
                             className={cn(
-                              'flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors text-sm',
+                              'flex items-center gap-3 px-3 py-2 rounded-md transition-colors text-sm',
                               isActive(subLink.path)
                                 ? 'bg-blue-500 text-white'
                                 : 'text-gray-600 hover:bg-gray-100'
@@ -170,34 +191,39 @@ const Sidebar = () => {
                 key={link.path}
                 to={link.path}
                 className={cn(
-                  'flex items-center space-x-3 px-3 py-2.5 rounded-lg transition-colors',
+                  'flex items-center gap-3 px-3 py-2.5 rounded-md transition-colors',
                   isActive(link.path)
                     ? 'bg-blue-600 text-white'
                     : 'text-gray-700 hover:bg-gray-100'
                 )}
               >
-                <Icon className="h-5 w-5 mx-auto" />
+                <Icon className="h-5 w-5 mx-auto sm:mx-0" />
                 {!collapsed && <span className="font-medium truncate">{link.label}</span>}
               </Link>
             );
           })}
+          </div>
         </nav>
 
         {/* User section (fixed at bottom) */}
-        <div className="pt-3 border-t px-3 pb-3">
+        <div className="pt-3 border-t px-3 pb-3 bg-white">
           <Link
             to="/profile"
             className={cn(
-              'flex items-center gap-3 px-2 py-2 rounded-lg transition-colors',
+              'flex items-center gap-3 px-2 py-2 rounded-md transition-colors',
               isActive('/profile') ? 'bg-blue-50' : 'hover:bg-gray-100',
               collapsed && 'justify-center'
             )}
             title={collapsed ? 'Profil' : undefined}
           >
-            <Avatar className="h-9 w-9">
-              <AvatarFallback className="bg-blue-100 text-blue-700 text-sm font-semibold">
-                {userInitials}
-              </AvatarFallback>
+            <Avatar className="h-9 w-9 ring-1 ring-gray-200">
+              {avatarUrl ? (
+                <AvatarImage src={avatarUrl} alt="Avatar" />
+              ) : (
+                <AvatarFallback className="bg-blue-100 text-blue-700 text-sm font-semibold">
+                  {userInitials}
+                </AvatarFallback>
+              )}
             </Avatar>
             {!collapsed && (
               <div className="flex flex-col min-w-0">
@@ -213,7 +239,7 @@ const Sidebar = () => {
           <button
             onClick={handleLogout}
             className={cn(
-              'mt-2 w-full flex items-center gap-2 px-2 py-2 rounded-lg text-sm text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors',
+              'mt-2 w-full flex items-center gap-2 px-2 py-2 rounded-md text-sm text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors',
               collapsed && 'justify-center'
             )}
             title={collapsed ? 'Déconnexion' : undefined}
