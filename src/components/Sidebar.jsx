@@ -101,7 +101,7 @@ const Sidebar = () => {
 
   return (
     <aside className={cn(
-      'flex-shrink-0 bg-white border-r h-screen overflow-hidden transition-all duration-200',
+      'flex-shrink-0 bg-white border-r h-screen overflow-hidden transition-all duration-200 sticky top-0 z-30',
       collapsed ? 'w-20 min-w-[5rem] max-w-[5rem]' : 'w-64 min-w-[16rem] max-w-[16rem]'
     )}>
       <div className="h-full flex flex-col">

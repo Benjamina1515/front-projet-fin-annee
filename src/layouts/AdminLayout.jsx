@@ -3,10 +3,10 @@ import Sidebar from '../components/Sidebar';
 
 const AdminLayout = () => {
   return (
-    <div className="min-h-screen bg-gray-50 overflow-x-hidden">
-      <div className="flex overflow-x-hidden">
+    <div className="h-screen bg-gray-50 overflow-hidden">
+      <div className="flex h-full">
         <Sidebar />
-        <main className="flex-1 min-w-0 p-6 overflow-x-hidden">
+        <main className="flex-1 min-w-0 p-6 overflow-y-auto">
           <Outlet />
         </main>
       </div>
