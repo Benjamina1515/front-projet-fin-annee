@@ -222,14 +222,14 @@ const StudentProjects = () => {
           )}
         </button>
 
-        <div className={`p-6 border-b border-gray-200 bg-white ${sidebarCollapsed ? 'px-4' : ''}`}>
+        <div className={`p-6 border-b border-gray-200 rounded-2xl bg-blue-900 ${sidebarCollapsed ? 'px-4' : ''}`}>
           {sidebarCollapsed ? (
             <div className="flex justify-center">
-              <Circle className="h-3 w-3 fill-current text-gray-900" />
+              <Circle className="h-3 w-3 fill-current text-white" />
             </div>
           ) : (
-            <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-              <Circle className="h-2 w-2 fill-current text-gray-900" />
+            <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+              <Circle className="h-2 w-2 fill-current text-white" />
               Projets par Professeur
             </h2>
           )}
@@ -253,7 +253,7 @@ const StudentProjects = () => {
                     className={`
                       ${sidebarCollapsed ? 'p-3 justify-center' : 'p-4'} rounded-lg cursor-pointer transition-all duration-200 border flex items-center
                       ${selectedProfId === null
-                        ? 'bg-white border-l-4 border-blue-600 shadow-sm'
+                        ? 'bg-white border-l-4 border-amber-500 shadow-sm'
                         : 'bg-white/70 hover:bg-white border-l-4 border-transparent hover:border-gray-300 hover:shadow-sm'
                       }
                     `}
@@ -264,7 +264,7 @@ const StudentProjects = () => {
                         selectedProfId === null ? 'bg-blue-100' : 'bg-gray-100'
                       }`}>
                         <BookOpen className={`h-5 w-5 ${
-                          selectedProfId === null ? 'text-blue-600' : 'text-gray-600'
+                          selectedProfId === null ? 'text-blue-900' : 'text-gray-600'
                         }`} />
                       </div>
                       {!sidebarCollapsed && (
@@ -301,7 +301,7 @@ const StudentProjects = () => {
                           className={`
                             ${sidebarCollapsed ? 'p-3 justify-center' : 'p-4'} rounded-lg cursor-pointer transition-all duration-200 border flex items-center
                             ${isSelected
-                              ? 'bg-white border-l-4 border-blue-600 shadow-sm'
+                              ? 'bg-white border-l-4 border-amber-500 shadow-sm'
                               : 'bg-white/70 hover:bg-white border-l-4 border-transparent hover:border-gray-300 hover:shadow-sm'
                             }
                           `}
@@ -321,7 +321,7 @@ const StudentProjects = () => {
                               isSelected ? 'bg-blue-100' : 'bg-gray-100'
                             }`}>
                               <GraduationCap className={`h-5 w-5 ${
-                                isSelected ? 'text-blue-600' : 'text-gray-600'
+                                isSelected ? 'text-blue-900' : 'text-gray-600'
                               }`} />
                               {sidebarCollapsed && nombreProjets > 0 && (
                                 <div className="absolute -top-1 -right-1 w-3 h-3 bg-blue-500 rounded-full border-2 border-white" />
@@ -474,10 +474,10 @@ const StudentProjects = () => {
                           e.stopPropagation();
                           handleOpenDetails(projet);
                         }}
-                        className="absolute -top-3 -right-3 z-10 bg-white border-2 border-blue-500 rounded-full p-2 shadow-lg hover:bg-blue-50 hover:border-blue-600 transition-all group"
+                        className="absolute -top-3 -right-3 z-10 bg-white border-2 border-black\50 rounded-full p-2 shadow-lg hover:bg-amber-50 hover:border-amber-600 transition-all group"
                         title="Voir les détails du projet"
                       >
-                        <Info className="h-4 w-4 text-blue-600 group-hover:scale-110 transition-transform" />
+                        <Info className="h-4 w-4 text-amber-600 group-hover:scale-110 transition-transform" />
                       </button>
 
                       <CardHeader className="pb-2">

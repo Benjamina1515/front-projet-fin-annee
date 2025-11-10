@@ -17,7 +17,7 @@ const LABELS = {
 
 const capitalize = (s) => s?.charAt(0).toUpperCase() + s?.slice(1);
 
-const Breadcrumbs = ({ className = '' }) => {
+const Breadcrumbs = ({ className = '', color = 'text-blue-900' }) => {
   const location = useLocation();
   const segments = location.pathname.split('/').filter(Boolean);
 
@@ -45,9 +45,9 @@ const Breadcrumbs = ({ className = '' }) => {
         <div key={item.href} className="flex items-center">
           {idx > 0 && <ChevronRight className="h-4 w-4 mx-2 text-gray-400" />}
           {item.isLast ? (
-            <span className="font-medium text-gray-900">{item.label}</span>
+            <span className={`font-medium ${color}`}>{item.label}</span>
           ) : (
-            <Link to={item.href} className="hover:text-blue-600">
+            <Link to={item.href} className="hover:text-blue-900">
               {item.label}
             </Link>
           )}

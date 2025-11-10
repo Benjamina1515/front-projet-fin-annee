@@ -735,20 +735,20 @@ const StudentTasks = () => {
   return (
     <div className="min-h-screen container bg-gray-50">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-8 py-6">
-        <div className="mb-2">
-          <Breadcrumbs />
+      <div className="bg-blue-900 rounded-2xl border-b border-gray-200 px-8 py-6">
+        <div className="mb-4">
+          <Breadcrumbs className='text-white' color='text-amber-500'/>
         </div>
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-1">Tâches</h1>
-            <p className="text-sm text-gray-600">
+            <h1 className="text-2xl font-bold text-white mb-1">Tâches</h1>
+            <p className="text-sm text-gray-200">
               Suivez toutes vos tâches pour cet événement
             </p>
           </div>
           <div className="flex items-center gap-4">
             <Button
-              className="bg-teal-600 hover:bg-teal-700 text-white"
+              className="bg-gray-100 hover:bg-gray-300 text-black"
               onClick={() => setIsNewTaskOpen(true)}
             >
               <Plus className="h-4 w-4 mr-2" />
@@ -1210,7 +1210,7 @@ const StudentTasks = () => {
                 !newTask.nom.trim() ||
                 !newTask.projet_id
               }
-              className="bg-teal-600 hover:bg-teal-700 disabled:opacity-60 disabled:cursor-not-allowed"
+              className="bg-amber-500 hover:bg-amber-600 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {isCreatingTask ? (
                 <>

@@ -118,7 +118,7 @@ const Sidebar = () => {
               alt={collapsed ? 'Icone' : 'Logo'}
               className={cn(
                 'block w-auto transition-all duration-300',
-                collapsed ? 'h-9 w-9' : 'h-40 w-40'
+                collapsed ? 'h-8 w-8' : 'h-40 w-40'
               )}
             />
           </Link>
@@ -131,10 +131,10 @@ const Sidebar = () => {
           </button>
         </div>
 
-        <nav className="flex-1 overflow-y-auto p-3 bg-white">
+        <nav className="flex-1 overflow-y-auto p-3 bg-blue-900">
           {!collapsed && (
             <div className="px-2 pb-2">
-              <p className="text-xs uppercase tracking-wide text-gray-400">Navigation</p>
+              <p className="text-xs uppercase tracking-wide text-gray-100">Navigation</p>
             </div>
           )}
           <div className={cn('space-y-1.5', collapsed && 'space-y-1')}>
@@ -151,23 +151,33 @@ const Sidebar = () => {
                     <button
                       onClick={() => !collapsed && setIsUsersMenuOpen(!isUsersMenuOpen)}
                       className={cn(
-                        'relative w-full flex items-center justify-between px-3 py-2.5 rounded-md transition-colors overflow-hidden',
-                        'after:absolute after:bottom-1 after:h-0.5 after:bg-blue-500 after:rounded-full after:origin-center after:scale-x-0 after:transition-transform after:duration-200',
+                        'relative w-full flex items-center justify-between px-3 py-2.5 rounded-md transition-colors overflow-hidden group',
+                        'after:absolute after:bottom-1 after:h-0.5 after:bg-amber-500 after:rounded-full after:origin-center after:scale-x-0 after:transition-transform after:duration-200',
                         underlineClass,
                         hasActiveSubmenu || isUsersMenuOpen
-                          ? 'text-blue-600 after:scale-x-100'
-                          : 'text-gray-700 hover:text-blue-600'
+                          ? 'text-amber-500 after:scale-x-100'
+                          : 'text-white hover:text-amber-500 hover:after:scale-x-100'
                       )}
                     >
                       <div className={cn('flex items-center', collapsed ? 'justify-center w-full' : 'gap-3')}>
-                        <Icon className="h-5 w-5" />
-                        {!collapsed && <span className="font-medium">{link.label}</span>}
+                        <Icon className={cn(
+                          'h-5 w-5 transition-colors',
+                          (hasActiveSubmenu || isUsersMenuOpen) 
+                            ? 'text-amber-500' 
+                            : 'text-white group-hover:text-amber-500'
+                        )} />
+                        {!collapsed && <span className={cn(
+                          'font-medium transition-colors',
+                          (hasActiveSubmenu || isUsersMenuOpen)
+                            ? 'text-amber-500'
+                            : 'text-white group-hover:text-amber-500'
+                        )}>{link.label}</span>}
                       </div>
                       {!collapsed && (
                         isUsersMenuOpen ? (
-                          <ChevronDown className="h-4 w-4 transition-transform duration-200" />
+                          <ChevronDown className="h-4 w-4 transition-transform duration-200 text-white" />
                         ) : (
-                          <ChevronRight className="h-4 w-4 transition-transform duration-200" />
+                          <ChevronRight className="h-4 w-4 transition-transform duration-200 text-white" />
                         )
                       )}
                     </button>
@@ -180,15 +190,25 @@ const Sidebar = () => {
                               key={subLink.path}
                               to={subLink.path}
                               className={cn(
-                                'relative flex items-center gap-3 px-3 py-2 rounded-md transition-colors text-sm overflow-hidden',
-                                'after:absolute after:bottom-1 after:left-3 after:right-3 after:h-0.5 after:bg-blue-500 after:rounded-full after:origin-center after:scale-x-0 after:transition-transform after:duration-200',
+                                'relative flex items-center gap-3 px-3 py-2 rounded-md transition-colors text-sm overflow-hidden group',
+                                'after:absolute after:bottom-1 after:left-3 after:right-3 after:h-0.5 after:bg-amber-500 after:rounded-full after:origin-center after:scale-x-0 after:transition-transform after:duration-200',
                                 isActive(subLink.path)
-                                  ? 'text-blue-600 after:scale-x-100'
-                                  : 'text-gray-600 hover:text-blue-600'
+                                  ? 'text-amber-500 after:scale-x-100'
+                                  : 'text-white hover:text-amber-500 hover:after:scale-x-100'
                               )}
                             >
-                              <SubIcon className="h-4 w-4" />
-                              <span>{subLink.label}</span>
+                              <SubIcon className={cn(
+                                'h-4 w-4 transition-colors',
+                                isActive(subLink.path) 
+                                  ? 'text-amber-500' 
+                                  : 'text-white group-hover:text-amber-500'
+                              )} />
+                              <span className={cn(
+                                'transition-colors',
+                                isActive(subLink.path)
+                                  ? 'text-amber-500'
+                                  : 'text-white group-hover:text-amber-500'
+                              )}>{subLink.label}</span>
                             </Link>
                           );
                         })}
@@ -203,16 +223,26 @@ const Sidebar = () => {
                   key={link.path}
                   to={link.path}
                   className={cn(
-                    'relative flex items-center gap-3 px-3 py-2.5 rounded-md transition-colors overflow-hidden',
-                    'after:absolute after:bottom-1 after:h-0.5 after:bg-blue-500 after:rounded-full after:origin-center after:scale-x-0 after:transition-transform after:duration-200',
+                    'relative flex items-center gap-3 px-3 py-2.5 rounded-md transition-colors overflow-hidden group',
+                    'after:absolute after:bottom-1 after:h-0.5 after:bg-amber-500 after:rounded-full after:origin-center after:scale-x-0 after:transition-transform after:duration-200',
                     underlineClass,
                     isActive(link.path)
-                      ? 'text-blue-600 after:scale-x-100'
-                      : 'text-gray-700 hover:text-blue-600'
+                      ? 'text-amber-500 after:scale-x-100'
+                      : 'text-white hover:text-amber-500 hover:after:scale-x-100'
                   )}
                 >
-                  <Icon className="h-5 w-5 mx-auto sm:mx-0" />
-                  {!collapsed && <span className="font-medium truncate">{link.label}</span>}
+                  <Icon className={cn(
+                    'h-5 w-5 mx-auto sm:mx-0 transition-colors',
+                    isActive(link.path) 
+                      ? 'text-amber-500' 
+                      : 'text-white group-hover:text-amber-500'
+                  )} />
+                  {!collapsed && <span className={cn(
+                    'font-medium truncate transition-colors',
+                    isActive(link.path) 
+                      ? 'text-amber-500' 
+                      : 'text-white group-hover:text-amber-500'
+                  )}>{link.label}</span>}
                 </Link>
               );
             })}
